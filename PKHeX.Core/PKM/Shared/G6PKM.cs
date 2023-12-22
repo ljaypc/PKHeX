@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace PKHeX.Core;
 
@@ -8,7 +9,7 @@ public abstract class G6PKM : PKM, ISanityChecksum
     public override int SIZE_PARTY => PokeCrypto.SIZE_6PARTY;
     public override int SIZE_STORED => PokeCrypto.SIZE_6STORED;
     protected G6PKM(byte[] data) : base(data) { }
-    protected G6PKM(int size) : base(size) { }
+    protected G6PKM([ConstantExpected] int size) : base(size) { }
 
     // Trash Bytes
     public sealed override Span<byte> Nickname_Trash => Data.AsSpan(0x40, 26);
@@ -83,7 +84,7 @@ public abstract class G6PKM : PKM, ISanityChecksum
         if (IsEgg)
         {
             // Eggs do not have any modifications done if they are traded
-            // Apply link trade data, only if it left the OT (ignore if dumped & imported, or cloned, etc)
+            // Apply link trade data, only if it left the OT (ignore if dumped & imported, or cloned, etc.)
             if ((tr.TID16 != TID16) || (tr.SID16 != SID16) || (tr.Gender != OT_Gender) || (tr.OT != OT_Name))
                 SetLinkTradeEgg(Day, Month, Year, Locations.LinkTrade6);
             return;
@@ -99,7 +100,7 @@ public abstract class G6PKM : PKM, ISanityChecksum
 
     // Maximums
     public sealed override int MaxIV => 31;
-    public sealed override int MaxEV => 252;
+    public sealed override int MaxEV => EffortValues.Max252;
     public sealed override int MaxStringLengthOT => 12;
     public sealed override int MaxStringLengthNickname => 12;
 }
@@ -109,5 +110,5 @@ public interface ISuperTrain
     uint SuperTrainBitFlags { get; set; }
     bool SecretSuperTrainingUnlocked { get; set; }
     bool SecretSuperTrainingComplete { get; set; }
-    int SuperTrainingMedalCount(int maxCount = 30);
+    int SuperTrainingMedalCount(int lowBitCount = 30);
 }

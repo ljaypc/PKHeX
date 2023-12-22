@@ -36,6 +36,35 @@ public static class SaveUtil
     public const int SIZE_G9_3P0 = SIZE_G9_3B0 + 0x5; // GO (before Multiplayer)
     public const int SIZE_G9_3P1 = SIZE_G9_3B1 + 0x5; // GO (before Multiplayer)
 
+    // 2.0.1 (2.0.0 skipped): Teal Mask
+    public const int SIZE_G9_DLC1_B = 0x4329A0;
+    public const int SIZE_G9_DLC1_T = 0x4329A5; // +5
+    public const int SIZE_G9_DLC1_0 = 0x4329A9; // +4
+    public const int SIZE_G9_DLC1_E = 0x4329AD; // +1
+    public const int SIZE_G9_DLC1_1 = 0x4329AE; // +1
+    public const int SIZE_G9_DLC1_D = 0x4329B2; // +4
+    public const int SIZE_G9_DLC1_F = 0x4329B3; // +1
+    public const int SIZE_G9_DLC1_A = 0x4329B6; // +3
+    public const int SIZE_G9_DLC1_Q = 0x4329B7; // +1
+    public const int SIZE_G9_DLC1_2 = 0x4329BB; // +5
+    public const int SIZE_G9_DLC1_U = 0x4329BC; // +1
+    public const int SIZE_G9_DLC1_W = 0x4329BF; // +4
+    public const int SIZE_G9_DLC1_3 = 0x4329C0; // +5
+    public const int SIZE_G9_DLC1_9 = 0x4329C4;
+    public const int SIZE_G9_DLC1_V = 0x4329C9;
+    public const int SIZE_G9_DLC1_4 = 0x432EB6;
+    public const int SIZE_G9_DLC1_C = 0x432EBB; // +5
+    public const int SIZE_G9_DLC1_5 = 0x432EBF; // +4
+    public const int SIZE_G9_DLC1_H = 0x432EC0; // +1
+    public const int SIZE_G9_DLC1_6 = 0x432EC3; // +4
+    public const int SIZE_G9_DLC1_G = 0x432EC4; // +1
+    public const int SIZE_G9_DLC1_7 = 0x432EC8; // +5
+    public const int SIZE_G9_DLC1_I = 0x432EC9; // +1
+    public const int SIZE_G9_DLC1_R = 0x432ECC; // +1
+    public const int SIZE_G9_DLC1_8 = 0x432ECD; // +5
+    public const int SIZE_G9_DLC1_Y = 0x432ED1; // +1
+    public const int SIZE_G9_DLC1_Z = 0x432ED6; // +5
+
     public const int SIZE_G8LA = 0x136DDE;
     public const int SIZE_G8LA_1 = 0x13AD06;
 
@@ -99,24 +128,27 @@ public static class SaveUtil
     /// Specialized readers for loading save files from non-standard games (e.g. hacks).
     /// </summary>
     // ReSharper disable once CollectionNeverUpdated.Global
-    public static readonly List<ISaveReader> CustomSaveReaders = new();
+    public static readonly List<ISaveReader> CustomSaveReaders = [];
 #endif
 
 #if !EXCLUDE_EMULATOR_FORMATS
     /// <summary>
     /// Pre-formatters for loading save files from non-standard formats (e.g. emulators).
     /// </summary>
-    public static readonly ICollection<ISaveHandler> Handlers = new List<ISaveHandler>
-    {
+    public static readonly List<ISaveHandler> Handlers =
+    [
         DolphinHandler,
         new SaveHandlerDeSmuME(),
         new SaveHandlerBizHawk(),
         new SaveHandlerARDS(),
-    };
+    ];
 #endif
 
-    private static readonly HashSet<long> SizesSV = new()
-    {
+    private const int SIZE_G9_202 = 0xC8E; // Add 2 blocks (1 obj 0xC80, 1 bool) = 4{key}1{obj}4{len} + 4{key}1{boolT/boolF}
+    private const int SIZE_G9_300 = 0x83AD;
+
+    private static readonly HashSet<long> SizesSV =
+    [
         SIZE_G9_0, SIZE_G9_0a,
         SIZE_G9_1, SIZE_G9_1a,
         SIZE_G9_1A, SIZE_G9_1Aa,
@@ -127,32 +159,61 @@ public static class SaveUtil
         SIZE_G9_3B0, SIZE_G9_3B1,
         SIZE_G9_3G0, SIZE_G9_3G1,
         SIZE_G9_3P0, SIZE_G9_3P1,
-    };
 
-    private static readonly HashSet<long> SizesSWSH = new()
-    {
+        SIZE_G9_DLC1_0, SIZE_G9_DLC1_0 + SIZE_G9_202, SIZE_G9_DLC1_0 + SIZE_G9_300,
+        SIZE_G9_DLC1_1, SIZE_G9_DLC1_1 + SIZE_G9_202, SIZE_G9_DLC1_1 + SIZE_G9_300,
+        SIZE_G9_DLC1_2, SIZE_G9_DLC1_2 + SIZE_G9_202, SIZE_G9_DLC1_2 + SIZE_G9_300,
+        SIZE_G9_DLC1_3, SIZE_G9_DLC1_3 + SIZE_G9_202, SIZE_G9_DLC1_3 + SIZE_G9_300,
+        SIZE_G9_DLC1_4, SIZE_G9_DLC1_4 + SIZE_G9_202, SIZE_G9_DLC1_4 + SIZE_G9_300,
+        SIZE_G9_DLC1_5, SIZE_G9_DLC1_5 + SIZE_G9_202, SIZE_G9_DLC1_5 + SIZE_G9_300,
+        SIZE_G9_DLC1_6, SIZE_G9_DLC1_6 + SIZE_G9_202, SIZE_G9_DLC1_6 + SIZE_G9_300,
+        SIZE_G9_DLC1_7, SIZE_G9_DLC1_7 + SIZE_G9_202, SIZE_G9_DLC1_7 + SIZE_G9_300,
+        SIZE_G9_DLC1_8, SIZE_G9_DLC1_8 + SIZE_G9_202, SIZE_G9_DLC1_8 + SIZE_G9_300,
+        SIZE_G9_DLC1_9, SIZE_G9_DLC1_9 + SIZE_G9_202, SIZE_G9_DLC1_9 + SIZE_G9_300,
+        SIZE_G9_DLC1_A, SIZE_G9_DLC1_A + SIZE_G9_202, SIZE_G9_DLC1_A + SIZE_G9_300,
+        SIZE_G9_DLC1_B, SIZE_G9_DLC1_B + SIZE_G9_202, SIZE_G9_DLC1_B + SIZE_G9_300,
+        SIZE_G9_DLC1_C, SIZE_G9_DLC1_C + SIZE_G9_202, SIZE_G9_DLC1_C + SIZE_G9_300,
+        SIZE_G9_DLC1_D, SIZE_G9_DLC1_D + SIZE_G9_202, SIZE_G9_DLC1_D + SIZE_G9_300,
+        SIZE_G9_DLC1_E, SIZE_G9_DLC1_E + SIZE_G9_202, SIZE_G9_DLC1_E + SIZE_G9_300,
+        SIZE_G9_DLC1_F, SIZE_G9_DLC1_F + SIZE_G9_202, SIZE_G9_DLC1_F + SIZE_G9_300,
+        SIZE_G9_DLC1_G, SIZE_G9_DLC1_G + SIZE_G9_202, SIZE_G9_DLC1_G + SIZE_G9_300,
+        SIZE_G9_DLC1_H, SIZE_G9_DLC1_H + SIZE_G9_202, SIZE_G9_DLC1_H + SIZE_G9_300,
+        SIZE_G9_DLC1_I, SIZE_G9_DLC1_I + SIZE_G9_202, SIZE_G9_DLC1_I + SIZE_G9_300,
+        SIZE_G9_DLC1_Q, SIZE_G9_DLC1_Q + SIZE_G9_202, SIZE_G9_DLC1_Q + SIZE_G9_300,
+        SIZE_G9_DLC1_W, SIZE_G9_DLC1_W + SIZE_G9_202, SIZE_G9_DLC1_W + SIZE_G9_300,
+        SIZE_G9_DLC1_R, SIZE_G9_DLC1_R + SIZE_G9_202, SIZE_G9_DLC1_R + SIZE_G9_300,
+        SIZE_G9_DLC1_T, SIZE_G9_DLC1_T + SIZE_G9_202, SIZE_G9_DLC1_T + SIZE_G9_300,
+        SIZE_G9_DLC1_Y, SIZE_G9_DLC1_Y + SIZE_G9_202, SIZE_G9_DLC1_Y + SIZE_G9_300,
+        SIZE_G9_DLC1_U, SIZE_G9_DLC1_U + SIZE_G9_202, SIZE_G9_DLC1_U + SIZE_G9_300,
+        SIZE_G9_DLC1_V, SIZE_G9_DLC1_V + SIZE_G9_202, SIZE_G9_DLC1_V + SIZE_G9_300,
+        SIZE_G9_DLC1_Z, SIZE_G9_DLC1_Z + SIZE_G9_202, SIZE_G9_DLC1_Z + SIZE_G9_300,
+    ];
+
+    private static readonly HashSet<long> SizesSWSH =
+    [
         SIZE_G8SWSH, SIZE_G8SWSH_1, SIZE_G8SWSH_2, SIZE_G8SWSH_2B, SIZE_G8SWSH_3, SIZE_G8SWSH_3A, SIZE_G8SWSH_3B, SIZE_G8SWSH_3C,
-    };
+    ];
 
-    private static readonly HashSet<long> SizesGen2 = new()
-    {
+    private static readonly HashSet<long> SizesGen2 =
+    [
         SIZE_G2RAW_U, SIZE_G2VC_U, SIZE_G2BAT_U, SIZE_G2EMU_U, SIZE_G2RAW_J, SIZE_G2BAT_J, SIZE_G2EMU_J, SIZE_G2VC_J,
-    };
+    ];
 
-    private static readonly HashSet<long> Sizes = new(SizesGen2.Concat(SizesSWSH).Concat(SizesSV))
-    {
+    private static readonly HashSet<long> Sizes =
+    [
+        ..SizesGen2, ..SizesSWSH, ..SizesSV,
         SIZE_G8LA, SIZE_G8LA_1, SIZE_G8BDSP, SIZE_G8BDSP_1, SIZE_G8BDSP_2, SIZE_G8BDSP_3,
-        // SizesSWSH covers gen8 sizes since there's so many
+        // SizesSWSH covers Gen8 sizes since there's so many
         SIZE_G7SM, SIZE_G7USUM, SIZE_G7GG,
         SIZE_G6XY, SIZE_G6ORAS, SIZE_G6ORASDEMO,
         SIZE_G5RAW, SIZE_G5BW, SIZE_G5B2W2,
         SIZE_G4BR, SIZE_G4RAW,
         SIZE_G3BOX, SIZE_G3COLO, SIZE_G3XD, SIZE_G3RAW, SIZE_G3EMU, SIZE_G3RAWHALF,
-        // SizesGen2 covers gen2 sizes since there's so many
+        // SizesGen2 covers Gen2 sizes since there's so many
         SIZE_G1RAW, SIZE_G1BAT,
 
         SIZE_G7BANK, SIZE_G4BANK, SIZE_G4RANCH, SIZE_G4RANCH_PLAT,
-    };
+    ];
 
     /// <summary>Determines the type of the provided save data.</summary>
     /// <param name="data">Save data of which to determine the origins of</param>
@@ -352,9 +413,9 @@ public static class SaveUtil
             case 1: return FRLG; // fixed value
             case 0: return RS; // save has no battle tower record data
             default:
-                // RS data structure only extends 0x890 bytes; check if any data is present afterwards.
+                // RS data structure only extends 0x890 bytes; check if any data is present afterward.
                 var remainder = data[0x890..0xF2C];
-                if (remainder.IndexOfAnyExcept<byte>(0) != -1)
+                if (remainder.ContainsAnyExcept<byte>(0))
                     return E;
                 return RS;
         }
@@ -422,30 +483,28 @@ public static class SaveUtil
         if (data.Length != SIZE_G4RAW)
             return Invalid;
 
-        // The block footers contain a u32 'size' followed by a u32 binary-coded-decimal timestamp(?)
-        // Korean saves have a different timestamp from other localizations.
-        static bool validSequence(ReadOnlySpan<byte> data, int offset)
-        {
-            var size = ReadUInt32LittleEndian(data[(offset - 0xC)..]);
-            if (size != (offset & 0xFFFF))
-                return false;
-            var sdk = ReadUInt32LittleEndian(data[(offset - 0x8)..]);
-
-            const int DATE_INT = 0x20060623;
-            const int DATE_KO  = 0x20070903;
-            return sdk is DATE_INT or DATE_KO;
-        }
-
         // Check the other save -- first save is done to the latter half of the binary.
         // The second save should be all that is needed to check.
-        if (validSequence(data, 0x4C100))
+        const int generalOffset = 0x40000;
+        if (IsValidGeneralFooter(data.Slice(generalOffset, SAV4DP.GeneralSize)))
             return DP;
-        if (validSequence(data, 0x4CF2C))
+        if (IsValidGeneralFooter(data.Slice(generalOffset, SAV4Pt.GeneralSize)))
             return Pt;
-        if (validSequence(data, 0x4F628))
+        if (IsValidGeneralFooter(data.Slice(generalOffset, SAV4HGSS.GeneralSize)))
             return HGSS;
 
         return Invalid;
+
+        // The block footers contain a 32-bit 'size' followed by a 32-bit binary-coded-decimal timestamp
+        // Korean saves have a different timestamp from other localizations.
+        static bool IsValidGeneralFooter(ReadOnlySpan<byte> general)
+        {
+            var size = ReadUInt32LittleEndian(general[^0xC..]);
+            if (size != general.Length)
+                return false;
+            var sdk = ReadUInt32LittleEndian(general[^0x8..]);
+            return sdk is SAV4.MAGIC_JAPAN_INTL or SAV4.MAGIC_KOREAN;
+        }
     }
 
     /// <summary>Checks to see if the data belongs to a Gen4 Battle Revolution save</summary>
@@ -528,7 +587,7 @@ public static class SaveUtil
         const int actualLength = 0xB8800;
         if (ReadUInt32LittleEndian(data[(actualLength - 0x1F0)..]) != BEEF) // beef table start
             return Invalid;
-        if (ReadUInt16LittleEndian(data[(actualLength - 0x200 + 0xB0)..]) != 0x13) // check a block number to double check
+        if (ReadUInt16LittleEndian(data[(actualLength - 0x200 + 0xB0)..]) != 0x13) // check a block number to double-check
             return Invalid;
 
         return GG;
@@ -773,7 +832,7 @@ public static class SaveUtil
 
         // Only set geolocation data for 3DS titles
         if (sav is IRegionOrigin o)
-            o.SetDefaultRegionOrigins();
+            o.SetDefaultRegionOrigins((int)language);
 
         return sav;
     }
@@ -847,12 +906,12 @@ public static class SaveUtil
     /// <param name="deep">Search all subfolders</param>
     /// <param name="result">If this function returns true, full path of all <see cref="SaveFile"/> that match criteria. If this function returns false, the error message, or null if the directory could not be found</param>
     /// <param name="ignoreBackups">Option to ignore files with backup names and extensions</param>
-    /// <returns>Boolean indicating whether or not operation was successful.</returns>
+    /// <returns>Boolean indicating if the operation was successful.</returns>
     public static bool GetSavesFromFolder(string folderPath, bool deep, out IEnumerable<string> result, bool ignoreBackups = true)
     {
         if (!Directory.Exists(folderPath))
         {
-            result = Array.Empty<string>();
+            result = [];
             return false;
         }
         try
@@ -865,12 +924,12 @@ public static class SaveUtil
         }
         catch (Exception ex)
         {
-            result = new[]
-            {
+            result =
+            [
                 MsgFileLoadFailAuto + Environment.NewLine + folderPath,
                 MsgFileLoadFailAutoAdvise + Environment.NewLine + MsgFileLoadFailAutoCause,
                 ex.Message,
-            };
+            ];
             return false;
         }
     }
@@ -904,7 +963,7 @@ public static class SaveUtil
     /// Determines whether the save data size is valid for automatically detecting saves.
     /// </summary>
     /// <param name="size">Size in bytes of the save data</param>
-    /// <returns>A boolean indicating whether or not the save data size is valid.</returns>
+    /// <returns>A boolean indicating if the save data size is valid.</returns>
     public static bool IsSizeValid(long size) => IsSizeValidNoHandler(size) || IsSizeValidHandler(size) || SAV3GCMemoryCard.IsMemoryCardSize(size);
 
     /// <summary>

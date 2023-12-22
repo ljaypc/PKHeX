@@ -182,6 +182,17 @@ public static class EncounterServerDate
         {0024, (new(2023, 07, 26), new(2023, 08, 19))}, // Nontaro's Shiny Grimmsnarl
         {0505, (new(2023, 08, 07), new(2023, 09, 01))}, // WCS 2023 Stretchy Form Tatsugiri
         {1521, (new(2023, 08, 08), new(2023, 09, 19))}, // My Very Own Mew
+        {0506, (new(2023, 08, 10), new(2023, 08, 15))}, // Eduardo Gastrodon
+        {1524, (new(2023, 09, 06), new(2024, 09, 01))}, // Glaseado Cetitan
+        {0507, (new(2023, 10, 13), new(2024, 01, 01))}, // Trixie Mimikyu
+        {0031, (new(2023, 11, 01), new(2025, 02, 01))}, // PokéCenter Birthday Charcadet and Pawmi
+        {1006, (new(2023, 11, 02), new(2024, 01, 01))}, // Korea Bundle Fidough
+        {0508, (new(2023, 11, 17), new(2023, 11, 21))}, // Alex's Dragapult
+        {1526, (new(2023, 11, 22), new(2024, 11, 01))}, // Team Star Revavroom
+        {1529, (new(2023, 12, 07), new(2023, 12, 22))}, // Darkrai
+        {1530, (new(2023, 12, 07), new(2024, 01, 04))}, // Shiny Lucario
+        {1527, (new(2023, 12, 13), new(2024, 12, 01))}, // Paldea Gimmighoul
+        {0036, (new(2023, 12, 15), new(2024, 02, 14))}, // コロコロ Roaring Moon and Iron Valiant
 
         {9021, HOME3_ML}, // Hidden Ability Sprigatito
         {9022, HOME3_ML}, // Hidden Ability Fuecoco

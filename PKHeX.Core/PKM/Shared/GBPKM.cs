@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace PKHeX.Core;
 
@@ -15,11 +16,11 @@ public abstract class GBPKM : PKM
     public sealed override int MinGameID => (int)GameVersion.RD;
     public sealed override int MaxGameID => (int)GameVersion.C;
     public sealed override int MaxIV => 15;
-    public sealed override int MaxEV => ushort.MaxValue;
+    public sealed override int MaxEV => EffortValues.Max12;
 
-    public sealed override ReadOnlySpan<ushort> ExtraBytes => ReadOnlySpan<ushort>.Empty;
+    public sealed override ReadOnlySpan<ushort> ExtraBytes => [];
 
-    protected GBPKM(int size) : base(size) { }
+    protected GBPKM([ConstantExpected] int size) : base(size) { }
     protected GBPKM(byte[] data) : base(data) { }
 
     public sealed override byte[] EncryptedPartyData => Encrypt();
@@ -134,12 +135,9 @@ public abstract class GBPKM : PKM
 
     public sealed override int HPType
     {
-        get => ((IV_ATK & 3) << 2) | (IV_DEF & 3);
-        set
-        {
-            IV_DEF = ((IV_DEF >> 2) << 2) | (value & 3);
-            IV_DEF = ((IV_ATK >> 2) << 2) | ((value >> 2) & 3);
-        }
+        // Get and set values directly without multiple calls to DV16.
+        get => HiddenPower.GetTypeGB(DV16);
+        set => DV16 = HiddenPower.SetTypeGB(value, DV16);
     }
 
     public sealed override byte Form
@@ -154,8 +152,11 @@ public abstract class GBPKM : PKM
         {
             if (Species != 201) // Unown
                 return;
-            while (Form != value)
-                SetRandomIVs(0);
+            if (Form == value)
+                return;
+            var rnd = Util.Rand;
+            do DV16 = (ushort)rnd.Next();
+            while (Form != value);
         }
     }
 
@@ -224,10 +225,10 @@ public abstract class GBPKM : PKM
 
     protected static ushort GetStat(int baseStat, int iv, int effort, int level)
     {
-        // The games store a precomputed ushort[256] i*i table for all ushort->byte square root calcs.
+        // The games store a precomputed ushort[256] i^2 table for all ushort->byte square root calculations.
         // The game then iterates to find the lowest index with a value >= input (effort).
         // With modern CPUs we can just call sqrt->ceil directly.
-        // ceil(sqrt(65535)) evals to 256, but we're clamped to byte only.
+        // ceil(sqrt(65535)) evaluates to 256, but we're clamped to byte only.
         byte firstSquare = (byte)Math.Min(255, Math.Ceiling(Math.Sqrt(effort)));
 
         effort = firstSquare >> 2;

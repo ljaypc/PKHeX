@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using static System.Buffers.Binary.BinaryPrimitives;
 
 namespace PKHeX.Core;
@@ -13,8 +14,8 @@ public abstract class SAV6 : SAV_BEEF, ITrainerStatRecord, ISaveBlock6Core, IReg
     protected internal override string ShortSummary => $"{OT} ({Version}) - {Played.LastSavedTime}";
     public override string Extension => string.Empty;
 
-    protected SAV6(byte[] data, int biOffset) : base(data, biOffset) { }
-    protected SAV6(int size, int biOffset) : base(size, biOffset) { }
+    protected SAV6(byte[] data, [ConstantExpected] int biOffset) : base(data, biOffset) { }
+    protected SAV6([ConstantExpected] int size, [ConstantExpected] int biOffset) : base(size, biOffset) { }
 
     // Configuration
     protected override int SIZE_STORED => PokeCrypto.SIZE_6STORED;
@@ -23,7 +24,7 @@ public abstract class SAV6 : SAV_BEEF, ITrainerStatRecord, ISaveBlock6Core, IReg
     public override Type PKMType => typeof(PK6);
 
     public override int BoxCount => 31;
-    public override int MaxEV => 252;
+    public override int MaxEV => EffortValues.Max252;
     public override int Generation => 6;
     public override EntityContext Context => EntityContext.Gen6;
     protected override int GiftCountMax => 24;
@@ -52,7 +53,7 @@ public abstract class SAV6 : SAV_BEEF, ITrainerStatRecord, ISaveBlock6Core, IReg
     public int GetBattleBoxSlot(int slot) => BattleBoxOffset + (slot * SIZE_STORED);
 
     public virtual string JPEGTitle => string.Empty;
-    public virtual byte[] GetJPEGData() => Array.Empty<byte>();
+    public virtual byte[] GetJPEGData() => [];
 
     protected internal const int LongStringLength = 0x22; // bytes, not characters
     protected internal const int ShortStringLength = 0x1A; // bytes, not characters
@@ -111,8 +112,8 @@ public abstract class SAV6 : SAV_BEEF, ITrainerStatRecord, ISaveBlock6Core, IReg
         PK6 pk6 = (PK6)pk;
         // Apply to this Save File
         int CT = pk6.CurrentHandler;
-        DateTime Date = DateTime.Now;
-        pk6.Trade(this, Date.Day, Date.Month, Date.Year);
+        var now = EncounterDate.GetDate3DS();
+        pk6.Trade(this, now.Day, now.Month, now.Year);
         if (CT != pk6.CurrentHandler) // Logic updated Friendship
         {
             // Copy over the Friendship Value only under certain circumstances

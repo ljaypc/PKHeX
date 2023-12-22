@@ -224,7 +224,7 @@ public static class GameUtil
     public static GameVersion[] GetVersionsInGeneration(int generation, int pkVersion)
     {
         if (Gen7b.Contains(pkVersion))
-            return new[] {GO, GP, GE};
+            return [GO, GP, GE];
         return Array.FindAll(GameVersions, z => z.GetGeneration() == generation);
     }
 
@@ -232,12 +232,12 @@ public static class GameUtil
     /// List of possible <see cref="GameVersion"/> values within the provided <see cref="IGameValueLimit"/> criteria.
     /// </summary>
     /// <param name="obj">Criteria for retrieving versions</param>
-    /// <param name="generation">Generation format minimum (necessary for the CXD/Gen4 swap etc)</param>
+    /// <param name="generation">Generation format minimum (necessary for the CXD/Gen4 swap etc.)</param>
     public static IEnumerable<GameVersion> GetVersionsWithinRange(IGameValueLimit obj, int generation = -1)
     {
         var max = obj.MaxGameID;
         if (max == Legal.MaxGameID_7b) // edge case
-            return new[] {GO, GP, GE};
+            return [GO, GP, GE];
         var versions = GameVersions
             .Where(version => (GameVersion)obj.MinGameID <= version && version <= (GameVersion)max);
         if (generation < 0)
@@ -250,4 +250,7 @@ public static class GameUtil
             generation = 9;
         return versions.Where(version => version.GetGeneration() <= generation);
     }
+
+    public static GameVersion[] GetVersionsWithinRange(this GameVersion lump, GameVersion[] source) =>
+        Array.FindAll(source, z => lump.Contains(z));
 }

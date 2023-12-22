@@ -19,7 +19,7 @@ public static class EncounterSuggestion
             return GetSuggestedEncounterEgg(pk, loc);
 
         Span<EvoCriteria> chain = stackalloc EvoCriteria[EvolutionTree.MaxEvolutions];
-        var origin = new EvolutionOrigin(pk.Species, (byte)pk.Version, (byte)pk.Generation, (byte)pk.CurrentLevel, (byte)pk.CurrentLevel, SkipChecks: true);
+        var origin = new EvolutionOrigin(pk.Species, (byte)pk.Version, (byte)pk.Generation, (byte)pk.CurrentLevel, (byte)pk.CurrentLevel, OriginOptions.SkipChecks);
         var count = EvolutionChain.GetOriginChain(chain, pk, origin);
         var ver = (GameVersion)pk.Version;
         var generator = EncounterGenerator.GetGenerator(ver);
@@ -64,7 +64,7 @@ public static class EncounterSuggestion
             return pk.CurrentLevel; // be generous with transfer conditions
         if (pk.Format < 5) // and native
             return pk.Format == 2 && pk.Met_Location != 0 ? 1 : 0;
-        return 1; // gen5+
+        return 1; // Gen5+
     }
 
     public static int GetSuggestedEncounterEggLocationEgg(PKM pk, bool traded = false)
@@ -122,7 +122,7 @@ public static class EncounterSuggestion
 
         int most = 1;
         Span<EvoCriteria> chain = stackalloc EvoCriteria[EvolutionTree.MaxEvolutions];
-        var origin = new EvolutionOrigin(pk.Species, (byte)pk.Version, (byte)pk.Generation, startLevel, 100, SkipChecks: true);
+        var origin = new EvolutionOrigin(pk.Species, (byte)pk.Version, (byte)pk.Generation, startLevel, 100, OriginOptions.SkipChecks);
         while (true)
         {
             var count = EvolutionChain.GetOriginChain(chain, pk, origin);

@@ -10,7 +10,7 @@ public sealed class SaveBlockAccessor7b : ISaveBlockAccessor<BlockInfo7b>, ISave
     private const int boGG = 0xB8800 - 0x200; // nowhere near 1MB (savedata.bin size)
 
     private static readonly BlockInfo7b[] BlockInfoGG =
-    {
+    [
         new(boGG, 00, 0x00000, 0x00D90),
         new(boGG, 01, 0x00E00, 0x00200),
         new(boGG, 02, 0x01000, 0x00168),
@@ -32,7 +32,7 @@ public sealed class SaveBlockAccessor7b : ISaveBlockAccessor<BlockInfo7b>, ISave
         new(boGG, 18, 0x4E200, 0x69780),
         new(boGG, 19, 0xB7A00, 0x000B0),
         new(boGG, 20, 0xB7C00, 0x00940),
-    };
+    ];
 
     public IReadOnlyList<BlockInfo7b> BlockInfo => BlockInfoGG;
 
@@ -41,6 +41,7 @@ public sealed class SaveBlockAccessor7b : ISaveBlockAccessor<BlockInfo7b>, ISave
         Zukan = new Zukan7b(sav, GetBlockOffset(BelugaBlockIndex.Zukan), 0x550);
         Config = new ConfigSave7b(sav, GetBlockOffset(BelugaBlockIndex.ConfigSave));
         Items = new MyItem7b(sav, GetBlockOffset(BelugaBlockIndex.MyItem));
+        Coordinates = new Coordinates7b(sav, GetBlockOffset(BelugaBlockIndex.Coordinates));
         Storage = new PokeListHeader(sav, GetBlockOffset(BelugaBlockIndex.PokeListHeader));
         Status = new MyStatus7b(sav, GetBlockOffset(BelugaBlockIndex.MyStatus));
         Played = new PlayTime7b(sav, GetBlockOffset(BelugaBlockIndex.PlayTime));
@@ -53,6 +54,7 @@ public sealed class SaveBlockAccessor7b : ISaveBlockAccessor<BlockInfo7b>, ISave
     }
 
     public MyItem Items { get; }
+    public Coordinates7b Coordinates { get; }
     public Misc7b Misc { get; }
     public Zukan7b Zukan { get; }
     public MyStatus7b Status { get; }

@@ -10,12 +10,15 @@ public sealed class EvolutionGroup1 : IEvolutionGroup, IEvolutionEnvironment
     public IEvolutionGroup GetNext(PKM pk, EvolutionOrigin enc) => EvolutionGroup2.Instance;
     public IEvolutionGroup? GetPrevious(PKM pk, EvolutionOrigin enc) => pk.Format == 1 && ParseSettings.AllowGen1Tradeback ? EvolutionGroup2.Instance : null;
 
-    public void DiscardForOrigin(Span<EvoCriteria> result, PKM pk)
+    public void DiscardForOrigin(Span<EvoCriteria> result, PKM pk, EvolutionOrigin enc)
     {
         if (!ParseSettings.AllowGen1Tradeback)
             return; // no other groups were iterated, so no need to discard
 
-        EvolutionUtil.Discard(result, PersonalTable.C);
+        if (enc.Generation == 1)
+            EvolutionUtil.Discard(result, PersonalTable.RB);
+        else
+            EvolutionUtil.Discard(result, PersonalTable.C);
     }
 
     public int Devolve(Span<EvoCriteria> result, PKM pk, EvolutionOrigin enc)
@@ -40,7 +43,7 @@ public sealed class EvolutionGroup1 : IEvolutionGroup, IEvolutionEnvironment
         return present;
     }
 
-    public bool TryDevolve(ISpeciesForm head, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result)
+    public bool TryDevolve<T>(T head, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result) where T : ISpeciesForm
     {
         return Tree.Reverse.TryDevolve(head, pk, currentMaxLevel, levelMin, skipChecks, out result);
     }
@@ -70,7 +73,7 @@ public sealed class EvolutionGroup1 : IEvolutionGroup, IEvolutionEnvironment
         return present;
     }
 
-    public bool TryEvolve(ISpeciesForm head, ISpeciesForm next, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result)
+    public bool TryEvolve<T>(T head, ISpeciesForm next, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result) where T : ISpeciesForm
     {
         return Tree.Forward.TryEvolve(head, next, pk, currentMaxLevel, levelMin, skipChecks, out result);
     }

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace PKHeX.Core;
 
@@ -8,7 +9,7 @@ namespace PKHeX.Core;
 public abstract class G3PKM : PKM, IRibbonSetEvent3, IRibbonSetCommon3, IRibbonSetUnique3, IRibbonSetOnly3, IRibbonSetRibbons, IContestStats
 {
     protected G3PKM(byte[] data) : base(data) { }
-    protected G3PKM(int size) : base(size) { }
+    protected G3PKM([ConstantExpected] int size) : base(size) { }
 
     public abstract override PersonalInfo3 PersonalInfo { get; }
 
@@ -20,7 +21,7 @@ public abstract class G3PKM : PKM, IRibbonSetEvent3, IRibbonSetCommon3, IRibbonS
     public sealed override int MaxBallID => Legal.MaxBallID_3;
     public sealed override int MaxGameID => Legal.MaxGameID_3;
     public sealed override int MaxIV => 31;
-    public sealed override int MaxEV => 255;
+    public sealed override int MaxEV => EffortValues.Max255;
     public sealed override int MaxStringLengthOT => 7;
     public sealed override int MaxStringLengthNickname => 10;
 

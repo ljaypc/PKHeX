@@ -15,16 +15,26 @@ public class RaidTests
         byte[] data = raw.ToByteArray();
         var pk8 = new PK8(data);
 
+        bool found = IsPotentialRaidSeed(pk8.EncryptionConstant, pk8.PID, seed);
+        found.Should().BeTrue();
+
         var la = new LegalityAnalysis(pk8);
         var enc = la.EncounterMatch;
+        if (enc is not ISeedCorrelation64<Core.PKM> s64)
+            throw new ArgumentException(nameof(enc));
+        s64.TryGetSeed(pk8, out ulong detected).Should().BeTrue();
+        detected.Should().Be(seed);
+    }
 
-        var compare = enc switch
+    private static bool IsPotentialRaidSeed(uint ec, uint pid, ulong expect)
+    {
+        var seeds = new XoroMachineSkip(ec, pid);
+        foreach (var seed in seeds)
         {
-            EncounterStatic8N r => r.Verify(pk8, seed),
-            EncounterStatic8ND r => r.Verify(pk8, seed),
-            EncounterStatic8NC r => r.Verify(pk8, seed),
-            _ => throw new ArgumentException(nameof(enc)),
-        };
-        compare.Should().BeTrue();
+            if (seed != expect)
+                continue;
+            return true;
+        }
+        return false;
     }
 }

@@ -45,12 +45,12 @@ public sealed class PL6
     public uint Flags_6 { get => ReadUInt32LittleEndian(Data.AsSpan(0x3E1)); set => WriteUInt32LittleEndian(Data.AsSpan(0x3E1), value); }
 
     // Pokémon
-    public PL6_PKM Poke_1 { get => new(Data.Slice(0x09D, PL6_PKM.Size)); set => value.Data.CopyTo(Data, 0x09D); }
-    public PL6_PKM Poke_2 { get => new(Data.Slice(0x145, PL6_PKM.Size)); set => value.Data.CopyTo(Data, 0x145); }
-    public PL6_PKM Poke_3 { get => new(Data.Slice(0x1ED, PL6_PKM.Size)); set => value.Data.CopyTo(Data, 0x1ED); }
-    public PL6_PKM Poke_4 { get => new(Data.Slice(0x295, PL6_PKM.Size)); set => value.Data.CopyTo(Data, 0x295); }
-    public PL6_PKM Poke_5 { get => new(Data.Slice(0x33D, PL6_PKM.Size)); set => value.Data.CopyTo(Data, 0x33D); }
-    public PL6_PKM Poke_6 { get => new(Data.Slice(0x3E5, PL6_PKM.Size)); set => value.Data.CopyTo(Data, 0x3E5); }
+    public PL6_PKM Poke_1 { get => new(Data.AsSpan(0x09D, PL6_PKM.Size).ToArray()); set => value.Data.CopyTo(Data, 0x09D); }
+    public PL6_PKM Poke_2 { get => new(Data.AsSpan(0x145, PL6_PKM.Size).ToArray()); set => value.Data.CopyTo(Data, 0x145); }
+    public PL6_PKM Poke_3 { get => new(Data.AsSpan(0x1ED, PL6_PKM.Size).ToArray()); set => value.Data.CopyTo(Data, 0x1ED); }
+    public PL6_PKM Poke_4 { get => new(Data.AsSpan(0x295, PL6_PKM.Size).ToArray()); set => value.Data.CopyTo(Data, 0x295); }
+    public PL6_PKM Poke_5 { get => new(Data.AsSpan(0x33D, PL6_PKM.Size).ToArray()); set => value.Data.CopyTo(Data, 0x33D); }
+    public PL6_PKM Poke_6 { get => new(Data.AsSpan(0x3E5, PL6_PKM.Size).ToArray()); set => value.Data.CopyTo(Data, 0x3E5); }
 
     // Item Properties
     public int Item_1     { get => ReadUInt16LittleEndian(Data.AsSpan(0x489)); set => WriteUInt16LittleEndian(Data.AsSpan(0x489), (ushort)value); }
@@ -71,23 +71,26 @@ public sealed class PL6
 }
 
 /// <summary>
-/// Pokemon Link Gift Template
+/// Pokémon Link Gift Template
 /// </summary>
 /// <remarks>
 /// This Template object is very similar to the <see cref="WC6"/> structure and similar objects, in that the structure offsets are ordered the same.
 /// This template object is only present in Generation 6 save files.
 /// </remarks>
-public sealed class PL6_PKM : IRibbonSetEvent3, IRibbonSetEvent4, IEncounterInfo
+public sealed class PL6_PKM(byte[] Data) : IRibbonSetEvent3, IRibbonSetEvent4, IEncounterInfo, IMoveset, IRelearn,
+    IContestStats, IMemoryOT, ITrainerID32
 {
     internal const int Size = 0xA0;
 
-    public readonly byte[] Data;
+    public readonly byte[] Data = Data;
 
     public PL6_PKM() : this(new byte[Size]) { }
-    public PL6_PKM(byte[] data) => Data = data;
 
-    public int TID16 { get => ReadUInt16LittleEndian(Data.AsSpan(0x00)); set => WriteUInt16LittleEndian(Data.AsSpan(0x00), (ushort)value); }
-    public int SID16 { get => ReadUInt16LittleEndian(Data.AsSpan(0x02)); set => WriteUInt16LittleEndian(Data.AsSpan(0x02), (ushort)value); }
+    public TrainerIDFormat TrainerIDDisplayFormat => TrainerIDFormat.SixteenBit;
+
+    public uint ID32 { get => ReadUInt32LittleEndian(Data.AsSpan(0x00)); set => WriteUInt32LittleEndian(Data.AsSpan(0x00), value); }
+    public ushort TID16 { get => ReadUInt16LittleEndian(Data.AsSpan(0x00)); set => WriteUInt16LittleEndian(Data.AsSpan(0x00), value); }
+    public ushort SID16 { get => ReadUInt16LittleEndian(Data.AsSpan(0x02)); set => WriteUInt16LittleEndian(Data.AsSpan(0x02), value); }
     public int OriginGame { get => Data[0x04]; set => Data[0x04] = (byte)value; }
     public uint EncryptionConstant { get => ReadUInt32LittleEndian(Data.AsSpan(0x08)); set => WriteUInt32LittleEndian(Data.AsSpan(0x08), value); }
     public int Ball { get => Data[0xE]; set => Data[0xE] = (byte)value; }
@@ -114,12 +117,12 @@ public sealed class PL6_PKM : IRibbonSetEvent3, IRibbonSetEvent4, IEncounterInfo
     public int MetLocation  { get => ReadUInt16LittleEndian(Data.AsSpan(0x3E)); set => WriteUInt16LittleEndian(Data.AsSpan(0x3E), (ushort)value); }
     public byte MetLevel  { get => Data[0x40]; set => Data[0x40] = value; }
 
-    public int CNT_Cool { get => Data[0x41]; set => Data[0x41] = (byte)value; }
-    public int CNT_Beauty { get => Data[0x42]; set => Data[0x42] = (byte)value; }
-    public int CNT_Cute { get => Data[0x43]; set => Data[0x43] = (byte)value; }
-    public int CNT_Smart { get => Data[0x44]; set => Data[0x44] = (byte)value; }
-    public int CNT_Tough { get => Data[0x45]; set => Data[0x45] = (byte)value; }
-    public int CNT_Sheen { get => Data[0x46]; set => Data[0x46] = (byte)value; }
+    public byte CNT_Cool { get => Data[0x41]; set => Data[0x41] = value; }
+    public byte CNT_Beauty { get => Data[0x42]; set => Data[0x42] = value; }
+    public byte CNT_Cute { get => Data[0x43]; set => Data[0x43] = value; }
+    public byte CNT_Smart { get => Data[0x44]; set => Data[0x44] = value; }
+    public byte CNT_Tough { get => Data[0x45]; set => Data[0x45] = value; }
+    public byte CNT_Sheen { get => Data[0x46]; set => Data[0x46] = value; }
 
     public int IV_HP { get => Data[0x47]; set => Data[0x47] = (byte)value; }
     public int IV_ATK { get => Data[0x48]; set => Data[0x48] = (byte)value; }
@@ -183,7 +186,7 @@ public sealed class PL6_PKM : IRibbonSetEvent3, IRibbonSetEvent4, IEncounterInfo
         }
     }
 
-    public Moveset RelearnMoves
+    public Moveset Relearn
     {
         get => new(RelearnMove1, RelearnMove2, RelearnMove3, RelearnMove4);
         set

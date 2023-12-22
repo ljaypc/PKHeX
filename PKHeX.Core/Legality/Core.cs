@@ -17,10 +17,10 @@ public static class Legal
     internal const int MaxItemID_2 = 255;
     internal const int MaxAbilityID_2 = 0;
 
-    internal const int MaxSpeciesIndex_3 = 412;
     internal const int MaxSpeciesID_3 = 386;
     internal const int MaxMoveID_3 = 354;
     internal const int MaxItemID_3 = 374;
+    internal const int MaxItemID_3_E = 376;
     internal const int MaxItemID_3_COLO = 547;
     internal const int MaxItemID_3_XD = 593;
     internal const int MaxAbilityID_3 = 77;
@@ -114,10 +114,25 @@ public static class Legal
   //internal const int MaxGameID_8b = (int)GameVersion.SP;
     internal const int MaxAbilityID_8b = MaxAbilityID_8_R2;
 
-    internal const int MaxSpeciesID_9 = (int)Species.IronLeaves;
-    internal const int MaxMoveID_9 = (int)Move.MagicalTorque;
-    internal const int MaxItemID_9 = 2400; // Yellow Dish
-    internal const int MaxAbilityID_9 = (int)Ability.MyceliumMight;
+    internal const int MaxSpeciesID_9 = MaxSpeciesID_9_T2;
+    internal const int MaxMoveID_9 = MaxMoveID_9_T2;
+    internal const int MaxItemID_9 = MaxItemID_9_T2;
+    internal const int MaxAbilityID_9 = MaxAbilityID_9_T2;
+
+    internal const int MaxSpeciesID_9_T0 = (int)Species.IronLeaves;
+    internal const int MaxMoveID_9_T0 = (int)Move.MagicalTorque;
+    internal const int MaxItemID_9_T0 = 2400; // Yellow Dish
+    internal const int MaxAbilityID_9_T0 = (int)Ability.MyceliumMight;
+
+    internal const int MaxSpeciesID_9_T1 = (int)Species.Ogerpon;
+    internal const int MaxMoveID_9_T1 = (int)Move.IvyCudgel;
+    internal const int MaxItemID_9_T1 = 2481; // Glimmering Charm
+    internal const int MaxAbilityID_9_T1 = (int)Ability.SupersweetSyrup;
+
+    internal const int MaxSpeciesID_9_T2 = (int)Species.Pecharunt;
+    internal const int MaxMoveID_9_T2 = (int)Move.MalignantChain;
+    internal const int MaxItemID_9_T2 = 2557; // Briar’s Book
+    internal const int MaxAbilityID_9_T2 = (int)Ability.PoisonPuppeteer;
 
     internal const int MaxBallID_9 = (int)Ball.LAOrigin;
     internal const int MaxGameID_9 = (int)GameVersion.VL;
@@ -133,10 +148,10 @@ public static class Legal
     internal static readonly ushort[] HeldItems_AO = ItemStorage6AO.GetAllHeld();
     internal static readonly ushort[] HeldItems_SM = ItemStorage7SM.GetAllHeld();
     internal static readonly ushort[] HeldItems_USUM = ItemStorage7USUM.GetAllHeld();
-    internal static readonly ushort[] HeldItems_GG = Array.Empty<ushort>();
+    internal static readonly ushort[] HeldItems_GG = [];
     internal static readonly ushort[] HeldItems_SWSH = ItemStorage8SWSH.GetAllHeld();
     internal static readonly ushort[] HeldItems_BS = ItemStorage8BDSP.GetAll();
-    internal static readonly ushort[] HeldItems_LA = Array.Empty<ushort>();
+    internal static readonly ushort[] HeldItems_LA = [];
     internal static readonly ushort[] HeldItems_SV = ItemStorage9SV.GetAllHeld();
 
     internal static int GetMaxLanguageID(int generation) => generation switch
@@ -183,7 +198,7 @@ public static class Legal
     public static bool IsPPUpAvailable(ushort moveID) => moveID switch
     {
         0 => false,
-        (int)Move.Sketch => false, // BD/SP v1.0 could use PP Ups on Sketch, but not in later versions. Disallow anyways.
+        (int)Move.Sketch => false, // BD/SP v1.0 could use PP Ups on Sketch, but not in later versions. Disallow anyway.
         (int)Move.RevivalBlessing => false,
         _ => true,
     };

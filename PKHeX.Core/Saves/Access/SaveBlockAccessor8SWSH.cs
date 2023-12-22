@@ -13,6 +13,7 @@ public sealed class SaveBlockAccessor8SWSH : SCBlockAccessor, ISaveBlock8Main
     public Box8 BoxInfo { get; }
     public Party8 PartyInfo { get; }
     public MyItem8 Items { get; }
+    public Coordinates8 Coordinates { get; }
     public MyStatus8 MyStatus { get; }
     public Misc8 Misc { get; }
     public Zukan8 Zukan { get; }
@@ -36,6 +37,7 @@ public sealed class SaveBlockAccessor8SWSH : SCBlockAccessor, ISaveBlock8Main
         BoxInfo = new Box8(sav, GetBlock(KBox));
         PartyInfo = new Party8(sav, GetBlock(KParty));
         Items = new MyItem8(sav, GetBlock(KItem));
+        Coordinates = new Coordinates8(sav, GetBlock(KCoordinates));
         Zukan = new Zukan8(sav, GetBlock(KZukan), GetBlockSafe(KZukanR1), GetBlockSafe(KZukanR2));
         MyStatus = new MyStatus8(sav, GetBlock(KMyStatus));
         Misc = new Misc8(sav, GetBlock(KMisc));
@@ -140,10 +142,10 @@ public sealed class SaveBlockAccessor8SWSH : SCBlockAccessor, ISaveBlock8Main
     public const uint KCapturedRegisteel = 0xEE1FD86E; // FE_CAPTURE_REGISTEEL
     public const uint KCapturedSpiritomb = 0x11C12005; // FE_CAPTURE_MIKARUGE
     public const uint KCapturedRegigigas = 0xC4308A93; // FE_CAPTURE_REGIGIGASU
-    public const uint KCapturedCobalion = 0xBB305227; // z_wr0312_SymbolEncountPokemonGimmickSpawner_WR03_Sanjyuusi
-    public const uint KCapturedTerrakion = 0x750C83A4; // z_wr0322_SymbolEncountPokemonGimmickSpawner_WR03_Sanjyuusi
-    public const uint KCapturedVirizion = 0x1A27DF2C; // z_wr0304_SymbolEncountPokemonGimmickSpawner_WR03_Sanjyuusi
-    public const uint KCapturedKeldeo = 0xA097DE31; // z_wr0321_SymbolEncountPokemonGimmickSpawner_WR03_Sanjyuusi
+    public const uint KDisappearedCobalion = 0xBB305227; // z_wr0312_SymbolEncountPokemonGimmickSpawner_WR03_Sanjyuusi
+    public const uint KDisappearedTerrakion = 0x750C83A4; // z_wr0322_SymbolEncountPokemonGimmickSpawner_WR03_Sanjyuusi
+    public const uint KDisappearedVirizion = 0x1A27DF2C; // z_wr0304_SymbolEncountPokemonGimmickSpawner_WR03_Sanjyuusi
+    public const uint KDisappearedKeldeo = 0xA097DE31; // z_wr0321_SymbolEncountPokemonGimmickSpawner_WR03_Sanjyuusi
     public const uint KCapturedRegieleki = 0x4F4AEC32; // FE_CAPTURE_REDEN
     public const uint KCapturedRegidrago = 0x4F30F174; // FE_CAPTURE_REDRA
 
@@ -217,6 +219,16 @@ public sealed class SaveBlockAccessor8SWSH : SCBlockAccessor, ISaveBlock8Main
     public const uint KPlayRecordsEevee = 0xC804E4AF; // FSYS_PLAY_LETSGO_EEVEE
     public const uint KPlayRecordsQuest = 0xBF24DDAE; // FSYS_PLAY_POKEMON_QUEST
 
+    // Dojo event flags (bool)
+    public const uint KDojoHairStylistAvailable = 0xE02A722C;
+    public const uint KDojoBrokenRotomiDisappeared = 0x60E04225;
+    public const uint KDojoRotomiDisappeared = 0x82E071A0;
+    public const uint KDojoTableDisappeared = 0x3D83DC85;
+    public const uint KDojoDrinksVendingMachineDisappeared = 0x209CF1DC;
+    public const uint KDojoVitaminsVendingMachineDisappeared = 0x5C3ED669;
+    public const uint KCanBattleHoney = 0xC0423F6D;
+    public const uint KBattledHoneyToday = 0xDDA3F583;
+
     // Values
     public const uint KCurrentBox = 0x017C3CBB; // U32 Box Index
     public const uint KBoxesUnlocked = 0x71825204; // U32
@@ -232,9 +244,9 @@ public sealed class SaveBlockAccessor8SWSH : SCBlockAccessor, ISaveBlock8Main
     public const uint KDiggingDuoStreakStamina = 0x066F38F5; // U32
     public const uint KBirthMonth = 0x0D987D50; // U32
     public const uint KBirthDay = 0x355C8314; // U32
-    public const uint KCurrentDexEntry = 0x62743428; // U16 Species ID of last Pokedex entry viewed in Galar Dex
-    public const uint KCurrentDexEntryR1 = 0x789FF72D; // U16 Species ID of last Pokedex entry viewed in Armor Dex
-    public const uint KCurrentDexEntryR2 = 0x759FF274; // U16 Species ID of last Pokedex entry viewed in Crown Dex
+    public const uint KCurrentDexEntry = 0x62743428; // U16 Species ID of last Pokédex entry viewed in Galar Dex
+    public const uint KCurrentDexEntryR1 = 0x789FF72D; // U16 Species ID of last Pokédex entry viewed in Armor Dex
+    public const uint KCurrentDexEntryR2 = 0x759FF274; // U16 Species ID of last Pokédex entry viewed in Crown Dex
     public const uint KCurrentDex = 0x9CF58395; // U32 Galar=0, Armor=1, Crown=2
 
     public const uint KVolumeBackgroundMusic = 0xF8154AC9; // U32 0-10
@@ -257,14 +269,24 @@ public sealed class SaveBlockAccessor8SWSH : SCBlockAccessor, ISaveBlock8Main
     public const uint KOptionAutoSave = 0xB027F396; // U32 OptOut AutoSave=0
     public const uint KOptionShowNicknames = 0xCA8A8CEE; // U32 OptOut Show=0
     public const uint KOptionShowMoves = 0x9C781AE2; // U32 OptOut Show=0
-    public const uint KDojoWattDonationTotal = 0xC7161487; // U32 Amount of Watts donated to Master Dojo
     public const uint KDiggingPaWattStreak = 0x68BBA8B1; // U32 Most Watts dug up by the Digging Pa
     public const uint KAlolanDiglettFound = 0x4AEA5A7E; // U32 Amount of Alolan Diglett found on Isle of Armor
-    public const uint KStorySoniaCTQuestProgress = 0xCB135C68; // U32 Swords of Justice Quest progress. Values are from 0-7; 7=completed
     public const uint KBikeBoostChargeSteps = 0x57F29628; // U32 Current step counter, fully charged when this value matches KBikeBoostChargeLimit
     public const uint KBikeBoostChargeLimit = 0xF64719D9; // U32 Steps to charge bike boost, starts at 128 -> 64 when fully upgraded
     public const uint KEggHatchCycleSteps = 0x6C99F9A0; // U16 Current step counter for an egg cycle, 0-127
     public const uint KFriendshipWalkSteps = 0xE2798DDE; // U8 Current step counter for party to gain friendship, 0-127
+
+    // Dojo Watt Donations
+    public const uint KDojoWattDonationProgress = 0x0CBEB855; // U32 Progress of Watt Donations 0-15; 15=Completed
+    public const uint KDojoWattDonationTotal = 0xC7161487; // U32 Amount of Watts donated to Master Dojo
+
+    // Swords Of Justice
+    public const uint KStorySoniaCTQuestStatus = 0x4DBB9B79; // U32 Swords of Justice Quest status. Values are 0=Can't Start, 10=Can Start, 20=Camera Highlights Cobalion Footprints, 30=In Progress
+    public const uint KStorySoniaCTQuestProgress = 0xCB135C68; // U32 Swords of Justice Quest progress. Values are from 0=0 Reported, 1=1 Reported, 2=2 Reported, 4=3 Reported, 7=Keldeo Caught, 8=Keldeo Reported; 8=Completed
+    public const uint KStorySoniaCTQuestCobalionProgress = 0xC35F6291; // U32 Sword of Justice Cobalion progress. Values are 0=Footprints Unreported, 1=Location Revealed, 2=Caught, 3=Capture Reported
+    public const uint KStorySoniaCTQuestTerrakionProgress = 0x03C69A96; // U32 Sword of Justice Terrakion progress. Values are 0=Footprints Unreported, 1=Location Revealed, 2=Caught, 3=Capture Reported
+    public const uint KStorySoniaCTQuestVirizionProgress = 0xB98F962B; // U32 Sword of Justice Virizion progress. Values are 0=Footprints Unreported, 1=Location Revealed, 2=Caught, 3=Capture Reported
+    public const uint KStorySoniaCTQuestKeldeoProgress = 0x9A39C8FC; // U32 Sword of Justice Keldeo progress. Values are 0=Have To Camp, 2=Appeared, 3=Caught
 
     public const uint KSparringStreakNormal = 0xDB5E16CB; // U32 Best Normal-Type Restricted Sparring Streak
     public const uint KSparringNormalPartySlot1Species = 0x7BF09DD3; // U16 Species ID of 1st PKM used in party

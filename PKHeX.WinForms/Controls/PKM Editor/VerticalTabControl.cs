@@ -32,11 +32,9 @@ public class VerticalTabControl : TabControl
             e.DrawBackground();
         }
 
-        using var flags = new StringFormat
-        {
-            Alignment = StringAlignment.Center,
-            LineAlignment = StringAlignment.Center,
-        };
+        using var flags = new StringFormat();
+        flags.Alignment = StringAlignment.Center;
+        flags.LineAlignment = StringAlignment.Center;
         using var text = new SolidBrush(ForeColor);
         var tab = TabPages[index];
         graphics.DrawString(tab.Text, Font, text, bounds, flags);
@@ -59,14 +57,14 @@ public sealed class VerticalTabControlEntityEditor : VerticalTabControl
     /// Tab stripe colors based on Contest Stats.
     /// </summary>
     private static readonly Color[] SelectedTags =
-    {
+    [
         Color.FromArgb(248, 152, 096),
         Color.FromArgb(128, 152, 248),
         Color.FromArgb(248, 168, 208),
         Color.FromArgb(112, 224, 112),
         Color.FromArgb(248, 240, 056),
         Color.RosyBrown,
-    };
+    ];
 
     protected override void OnDrawItem(DrawItemEventArgs e)
     {
@@ -90,11 +88,9 @@ public sealed class VerticalTabControlEntityEditor : VerticalTabControl
             e.DrawBackground();
         }
 
-        using var flags = new StringFormat
-        {
-            Alignment = StringAlignment.Center,
-            LineAlignment = StringAlignment.Center,
-        };
+        using var flags = new StringFormat();
+        flags.Alignment = StringAlignment.Center;
+        flags.LineAlignment = StringAlignment.Center;
         using var text = new SolidBrush(ForeColor);
         var tab = TabPages[index];
         graphics.DrawString(tab.Text, Font, text, bounds, flags);

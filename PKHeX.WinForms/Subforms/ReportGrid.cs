@@ -48,7 +48,7 @@ public partial class ReportGrid : Form
         dgData.ContextMenuStrip = mnu;
     }
 
-    private sealed class PokemonList<T> : SortableBindingList<T> where T : class { }
+    private sealed class PokemonList<T> : SortableBindingList<T> where T : class;
 
     public void PopulateData(IList<SlotCache> Data)
     {
@@ -58,7 +58,7 @@ public partial class ReportGrid : Form
         foreach (var entry in Data)
         {
             var pk = entry.Entity;
-            if ((uint)(pk.Species - 1) >= pk.MaxSpeciesID)
+            if (pk.Species - 1u >= pk.MaxSpeciesID)
             {
                 continue;
             }
@@ -101,11 +101,9 @@ public partial class ReportGrid : Form
     {
         if (WinFormsUtil.Prompt(MessageBoxButtons.YesNo, MsgReportExportCSV) != DialogResult.Yes)
             return;
-        using var savecsv = new SaveFileDialog
-        {
-            Filter = "Spreadsheet|*.csv",
-            FileName = "Box Data Dump.csv",
-        };
+        using var savecsv = new SaveFileDialog();
+        savecsv.Filter = "Spreadsheet|*.csv";
+        savecsv.FileName = "Box Data Dump.csv";
         if (savecsv.ShowDialog() == DialogResult.OK)
         {
             Hide();
@@ -146,13 +144,13 @@ public partial class ReportGrid : Form
         }
 
         // Reformat datagrid clipboard content
-        string[] lines = data.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+        string[] lines = data.Split(Environment.NewLine);
         string[] newlines = ConvertTabbedToRedditTable(lines);
         WinFormsUtil.SetClipboardText(string.Join(Environment.NewLine, newlines));
         return true;
     }
 
-    private static string[] ConvertTabbedToRedditTable(string[] lines)
+    private static string[] ConvertTabbedToRedditTable(ReadOnlySpan<string> lines)
     {
         string[] newlines = new string[lines.Length + 1];
         int tabcount = lines[0].Count(c => c == '\t');

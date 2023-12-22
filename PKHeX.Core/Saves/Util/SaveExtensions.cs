@@ -38,7 +38,7 @@ public static class SaveExtensions
         return true;
     }
 
-    private static IReadOnlyList<string> GetSaveFileErrata(this SaveFile sav, PKM pk, IBasicStrings strings)
+    private static List<string> GetSaveFileErrata(this SaveFile sav, PKM pk, IBasicStrings strings)
     {
         var errata = new List<string>();
         ushort held = (ushort)pk.HeldItem;
@@ -165,7 +165,7 @@ public static class SaveExtensions
     {
         if (pk.Format >= 3 || sav.Generation >= 7)
             return EntityConverter.ConvertToType(pk, sav.PKMType, out _) ?? sav.BlankPKM;
-        // gen1-2 compatibility check
+        // Gen1/2 compatibility check
         if (pk.Japanese != ((ILangDeviantSave)sav).Japanese)
             return sav.BlankPKM;
         if (sav is SAV2 s2 && s2.Korean != pk.Korean)
@@ -193,7 +193,7 @@ public static class SaveExtensions
     /// <returns>Template if it exists, or a blank <see cref="PKM"/> from the <see cref="sav"/></returns>
     public static PKM LoadTemplate(this SaveFile sav, string? templatePath = null)
     {
-        if (templatePath == null || !Directory.Exists(templatePath))
+        if (!Directory.Exists(templatePath))
             return LoadTemplateInternal(sav);
 
         var di = new DirectoryInfo(templatePath);

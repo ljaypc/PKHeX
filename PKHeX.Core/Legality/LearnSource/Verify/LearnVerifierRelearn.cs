@@ -15,7 +15,7 @@ public static class LearnVerifierRelearn
         else if (enc is IRelearn {Relearn: {HasMoves: true} x})
             VerifyRelearnSpecifiedMoveset(pk, x, result);
         else if (enc is EncounterEgg e)
-            VerifyEggMoveset(e, result, pk.RelearnMoves);
+            VerifyEggMoveset(e, result, pk);
         else if (enc is EncounterSlot6AO { CanDexNav: true } z && pk.RelearnMove1 != 0)
             VerifyRelearnDexNav(pk, result, z);
         else if (enc is EncounterSlot8b { IsUnderground: true } u)
@@ -46,7 +46,7 @@ public static class LearnVerifierRelearn
 
     private static void VerifyRelearnDexNav(PKM pk, Span<MoveResult> result, EncounterSlot6AO slot)
     {
-        // All other relearn moves must be empty.
+        // Only has one relearn move from the encounter. Every other relearn move must be empty.
         result[3] = ParseExpect(pk.RelearnMove4);
         result[2] = ParseExpect(pk.RelearnMove3);
         result[1] = ParseExpect(pk.RelearnMove2);
@@ -57,7 +57,7 @@ public static class LearnVerifierRelearn
 
     private static void VerifyRelearnUnderground(PKM pk, Span<MoveResult> result, EncounterSlot8b slot)
     {
-        // All other relearn moves must be empty.
+        // Only has one relearn move from the encounter. Every other relearn move must be empty.
         result[3] = ParseExpect(pk.RelearnMove4);
         result[2] = ParseExpect(pk.RelearnMove3);
         result[1] = ParseExpect(pk.RelearnMove2);
@@ -73,6 +73,13 @@ public static class LearnVerifierRelearn
         result[2] = ParseExpect(pk.RelearnMove3);
         result[1] = ParseExpect(pk.RelearnMove2);
         result[0] = ParseExpect(pk.RelearnMove1);
+    }
+
+    private static void VerifyEggMoveset(EncounterEgg e, Span<MoveResult> result, PKM pk)
+    {
+        Span<ushort> moves = stackalloc ushort[4];
+        pk.GetRelearnMoves(moves);
+        VerifyEggMoveset(e, result, moves);
     }
 
     internal static void VerifyEggMoveset(EncounterEgg e, Span<MoveResult> result, ReadOnlySpan<ushort> moves)

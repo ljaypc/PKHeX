@@ -26,8 +26,7 @@ public sealed class ResortSave7 : SaveBlock<SAV7>
         }
         set
         {
-            if (value.Length != ResortCount)
-                throw new ArgumentException(nameof(ResortCount));
+            ArgumentOutOfRangeException.ThrowIfNotEqual(value.Length, ResortCount);
 
             for (int i = 0; i < value.Length; i++)
             {
@@ -63,7 +62,7 @@ public sealed class ResortSave7 : SaveBlock<SAV7>
         return GetBeanIndexNames(colors);
     }
 
-    private static string[] GetBeanIndexNames(string[] colors)
+    private static string[] GetBeanIndexNames(ReadOnlySpan<string> colors)
     {
         // 7 regular, 7 patterned, one rainbow
         var beans = new string[(colors.Length * 2) + 1];

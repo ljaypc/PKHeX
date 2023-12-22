@@ -1,4 +1,3 @@
-using System;
 using static PKHeX.Core.LegalityCheckStrings;
 using static PKHeX.Core.Species;
 
@@ -28,9 +27,9 @@ public sealed class FormVerifier : Verifier
     private CheckResult VerifyForm(LegalityAnalysis data)
     {
         var pk = data.Entity;
-        var PersonalInfo = data.PersonalInfo;
+        var pi = data.PersonalInfo;
 
-        int count = PersonalInfo.FormCount;
+        int count = pi.FormCount;
         var form = pk.Form;
         if (count <= 1 && form == 0)
             return VALID; // no forms to check
@@ -39,25 +38,32 @@ public sealed class FormVerifier : Verifier
         var enc = data.EncounterMatch;
         var Info = data.Info;
 
-        if (!PersonalInfo.IsFormWithinRange(form) && !FormInfo.IsValidOutOfBoundsForm(species, form, Info.Generation))
+        if (!pi.IsFormWithinRange(form) && !FormInfo.IsValidOutOfBoundsForm(species, form, Info.Generation))
             return GetInvalid(string.Format(LFormInvalidRange, count - 1, form));
 
         switch ((Species)species)
         {
             case Pikachu when Info.Generation == 6: // Cosplay
-                bool isStatic = enc is EncounterStatic6;
-                bool validCosplay = form == (isStatic ? enc.Form : 0);
-                if (!validCosplay)
-                    return GetInvalid(isStatic ? LFormPikachuCosplayInvalid : LFormPikachuCosplay);
+                if (enc is not EncounterStatic6 s6)
+                {
+                    if (form == 0)
+                        break; // Regular Pikachu, OK.
+                    return GetInvalid(LFormPikachuCosplay);
+                }
+                if (form != s6.Form)
+                    return GetInvalid(LFormPikachuCosplayInvalid);
+                if (pk.Format != 6)
+                    return GetInvalid(LTransferBad); // Can't transfer.
                 break;
 
+            // LGP/E: Can't get the other game's Starter form.
             case Pikachu when form is not 0 && ParseSettings.ActiveTrainer is SAV7b {Version:GameVersion.GE}:
             case Eevee when form is not 0 && ParseSettings.ActiveTrainer is SAV7b {Version:GameVersion.GP}:
                 return GetInvalid(LFormBattle);
 
             case Pikachu when Info.Generation >= 7: // Cap
-                bool validCap = form == (enc is EncounterInvalid or EncounterEgg ? 0 : enc.Form);
-                if (!validCap)
+                var expectForm = enc is EncounterInvalid or EncounterEgg ? 0 : enc.Form;
+                if (form != expectForm)
                 {
                     bool gift = enc is MysteryGift g && g.Form != form;
                     var msg = gift ? LFormPikachuEventInvalid : LFormInvalidGame;
@@ -78,13 +84,11 @@ public sealed class FormVerifier : Verifier
                 return GetInvalid(LFormItemInvalid);
 
             case Arceus:
-            {
-                var arceus = GetArceusFormFromHeldItem(pk.HeldItem, pk.Format);
+                var arceus = FormItem.GetFormArceus(pk.HeldItem, pk.Format);
                 return arceus != form ? GetInvalid(LFormItemInvalid) : GetValid(LFormItem);
-            }
             case Keldeo when enc.Generation != 5 || pk.Format >= 8:
-                // can mismatch in gen5 via BW tutor and transfer up
-                // can mismatch in gen8+ as the form activates in battle when knowing the move; outside of battle can be either state.
+                // can mismatch in Gen5 via B/W tutor and transfer up
+                // can mismatch in Gen8+ as the form activates in battle when knowing the move; outside of battle can be either state.
                 // Generation 8 patched out the mismatch; always forced to match moves.
                 bool hasSword = pk.HasMove((int) Move.SecretSword);
                 bool isSword = pk.Form == 1;
@@ -92,14 +96,12 @@ public sealed class FormVerifier : Verifier
                     return GetInvalid(LMoveKeldeoMismatch);
                 break;
             case Genesect:
-            {
-                var genesect = GetGenesectFormFromHeldItem(pk.HeldItem);
+                var genesect = FormItem.GetFormGenesect(pk.HeldItem);
                 return genesect != form ? GetInvalid(LFormItemInvalid) : GetValid(LFormItem);
-            }
             case Greninja:
                 if (form > 1) // Ash Battle Bond active
                     return GetInvalid(LFormBattle);
-                if (form != 0 && enc is not MysteryGift) // Forms are not breedable, MysteryGift already checked
+                if (form != 0 && enc is not MysteryGift) // Form can not be bred for, MysteryGift already checked
                     return GetInvalid(string.Format(LFormInvalidRange, 0, form));
                 break;
 
@@ -142,10 +144,8 @@ public sealed class FormVerifier : Verifier
                 return GetInvalid(LGenderInvalidNone);
 
             case Silvally:
-            {
-                var silvally = GetSilvallyFormFromHeldItem(pk.HeldItem);
+                var silvally = FormItem.GetFormSilvally(pk.HeldItem);
                 return silvally != form ? GetInvalid(LFormItemInvalid) : GetValid(LFormItem);
-            }
 
             // Form doesn't exist in SM; cannot originate from that game.
             case Rockruff when enc.Generation == 7 && form == 1 && pk.SM:
@@ -154,12 +154,14 @@ public sealed class FormVerifier : Verifier
 
             // Toxel encounters have already been checked for the nature-specific evolution criteria.
             case Toxtricity when enc.Species == (int)Toxtricity:
-            {
                 // The game enforces the Nature for Toxtricity encounters too!
-                if (pk.Form != EvolutionMethod.GetAmpLowKeyResult(pk.Nature))
+                if (pk.Form != ToxtricityUtil.GetAmpLowKeyResult(pk.Nature))
                     return GetInvalid(LFormInvalidNature);
                 break;
-            }
+
+            // Ogerpon's form changes depending on its held mask
+            case Ogerpon when (form & 3) != FormItem.GetFormOgerpon(pk.HeldItem):
+                return GetInvalid(LFormItemInvalid);
 
             // Impossible Egg forms
             case Rotom when pk.IsEgg && form != 0:
@@ -180,44 +182,5 @@ public sealed class FormVerifier : Verifier
             return GetInvalid(LFormBattle);
 
         return VALID;
-    }
-
-    private static ReadOnlySpan<ushort> Arceus_PlateIDs => new ushort[] { 303, 306, 304, 305, 309, 308, 310, 313, 298, 299, 301, 300, 307, 302, 311, 312, 644 };
-    private static ReadOnlySpan<ushort> Arceus_ZCrystal => new ushort[] { 782, 785, 783, 784, 788, 787, 789, 792, 777, 778, 780, 779, 786, 781, 790, 791, 793 };
-
-    public static byte GetArceusFormFromHeldItem(int item, int format) => item switch
-    {
-        (>= 777 and <= 793)        => GetArceusFormFromZCrystal(item),
-        (>= 298 and <= 313) or 644 => GetArceusFormFromPlate(item, format),
-        _ => 0,
-    };
-
-    private static byte GetArceusFormFromZCrystal(int item)
-    {
-        return (byte)(Arceus_ZCrystal.IndexOf((ushort)item) + 1);
-    }
-
-    private static byte GetArceusFormFromPlate(int item, int format)
-    {
-        byte form = (byte)(Arceus_PlateIDs.IndexOf((ushort)item) + 1);
-        if (format != 4) // No need to consider Curse type
-            return form;
-        if (form < 9)
-            return form;
-        return ++form; // ??? type Form shifts everything by 1
-    }
-
-    public static byte GetSilvallyFormFromHeldItem(int item)
-    {
-        if (item is >= 904 and <= 920)
-            return (byte)(item - 903);
-        return 0;
-    }
-
-    public static byte GetGenesectFormFromHeldItem(int item)
-    {
-        if (item is >= 116 and <= 119)
-            return (byte)(item - 115);
-        return 0;
     }
 }

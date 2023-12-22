@@ -15,7 +15,7 @@ public partial class SAV_Trainer9 : Form
     private readonly SaveFile Origin;
     private readonly SAV9SV SAV;
 
-    public SAV_Trainer9(SaveFile sav)
+    public SAV_Trainer9(SAV9SV sav)
     {
         InitializeComponent();
         WinFormsUtil.TranslateInterface(this, Main.CurrentLanguage);
@@ -29,6 +29,7 @@ public partial class SAV_Trainer9 : Form
 
         B_MaxCash.Click += (sender, e) => MT_Money.Text = SAV.MaxMoney.ToString();
         B_MaxLP.Click += (sender, e) => MT_LP.Text = SAV.MaxMoney.ToString();
+        B_MaxBP.Click += (sender, e) => MT_BP.Text = SAV.MaxMoney.ToString();
 
         var games = GameInfo.Strings.gamelist;
         CB_Game.Items.Clear();
@@ -43,14 +44,27 @@ public partial class SAV_Trainer9 : Form
         GetTextBoxes();
         LoadMap();
 
-        CB_Fashion.SelectedIndex = 0;
+        if (SAV.SaveRevision >= 2)
+            LoadBlueberry();
+        else
+            TC_Editor.TabPages.Remove(Tab_Blueberry);
+
+        B_UnlockCoaches.Visible = SAV.SaveRevision >= 2;
 
         Loading = false;
     }
 
+    private void LoadBlueberry()
+    {
+        var bbq = SAV.BlueberryQuestRecord;
+        MT_BP.Text = SAV.BlueberryPoints.ToString();
+        NUD_BBQSolo.Value = bbq.QuestsDoneSolo;
+        NUD_BBQGroup.Value = bbq.QuestsDoneGroup;
+    }
+
     private void GetImages()
     {
-        static Image GetImage(SCBlockAccessor blocks, uint kd, uint kw, uint kh)
+        static Bitmap GetImage(SCBlockAccessor blocks, uint kd, uint kw, uint kh)
         {
             var data = blocks.GetBlock(kd).Data;
             var width = blocks.GetBlockValue<uint>(kw);
@@ -72,9 +86,10 @@ public partial class SAV_Trainer9 : Form
     {
         try
         {
-            NUD_X.Value = (decimal)SAV.X;
-            NUD_Y.Value = (decimal)SAV.Y;
-            NUD_Z.Value = (decimal)SAV.Z;
+            NUD_X.Value = (decimal)(double)SAV.X;
+            NUD_Y.Value = (decimal)(double)SAV.Y;
+            NUD_Z.Value = (decimal)(double)SAV.Z;
+            NUD_R.Value = (decimal)(Math.Atan2(SAV.RZ, SAV.RW) * 360.0 / Math.PI);
         }
         // If we can't accurately represent the coordinates, don't allow them to be changed.
         catch { GB_Map.Enabled = false; }
@@ -111,6 +126,16 @@ public partial class SAV_Trainer9 : Form
     {
         SaveTrainerInfo();
         SaveMap();
+        if (SAV.SaveRevision >= 2)
+            SaveBlueberry();
+    }
+
+    private void SaveBlueberry()
+    {
+        var bbq = SAV.BlueberryQuestRecord;
+        SAV.BlueberryPoints = Util.ToUInt32(MT_BP.Text);
+        bbq.QuestsDoneSolo = (uint)NUD_BBQSolo.Value;
+        bbq.QuestsDoneGroup = (uint)NUD_BBQGroup.Value;
     }
 
     private void SaveMap()
@@ -118,6 +143,8 @@ public partial class SAV_Trainer9 : Form
         if (!MapUpdated)
             return;
         SAV.SetCoordinates((float)NUD_X.Value, (float)NUD_Y.Value, (float)NUD_Z.Value);
+        var angle = (double)NUD_R.Value * Math.PI / 360.0;
+        SAV.SetPlayerRotation(0, (float)Math.Sin(angle), 0, (float)Math.Cos(angle));
     }
 
     private void SaveTrainerInfo()
@@ -136,6 +163,9 @@ public partial class SAV_Trainer9 : Form
         SAV.PlayedSeconds = ushort.Parse(MT_Seconds.Text) % 60;
 
         SAV.EnrollmentDate.Timestamp = CAL_AdventureStartDate.Value;
+
+        if (SAV.Blocks.TryGetBlock(KBlueberryPoints, out var block))
+            block.SetValue(Util.ToUInt32(MT_BP.Text));
     }
 
     private void ClickOT(object sender, MouseEventArgs e)
@@ -179,95 +209,132 @@ public partial class SAV_Trainer9 : Form
 
     private void UnlockFlyLocations()
     {
-        var blocks = new[]
-        {
-            #region Fly Flags
-            FSYS_YMAP_FLY_01,
-            FSYS_YMAP_FLY_02,
-            FSYS_YMAP_FLY_03,
-            FSYS_YMAP_FLY_04,
-            FSYS_YMAP_FLY_05,
-            FSYS_YMAP_FLY_06,
-            FSYS_YMAP_FLY_07,
-            FSYS_YMAP_FLY_08,
-            FSYS_YMAP_FLY_09,
-            FSYS_YMAP_FLY_10,
-            FSYS_YMAP_FLY_11,
-            FSYS_YMAP_FLY_12,
-            FSYS_YMAP_FLY_13,
-            FSYS_YMAP_FLY_14,
-            FSYS_YMAP_FLY_15,
-            FSYS_YMAP_FLY_16,
-            FSYS_YMAP_FLY_17,
-            FSYS_YMAP_FLY_18,
-            FSYS_YMAP_FLY_19,
-            FSYS_YMAP_FLY_20,
-            FSYS_YMAP_FLY_21,
-            FSYS_YMAP_FLY_22,
-            FSYS_YMAP_FLY_23,
-            FSYS_YMAP_FLY_24,
-            FSYS_YMAP_FLY_25,
-            FSYS_YMAP_FLY_26,
-            FSYS_YMAP_FLY_27,
-            FSYS_YMAP_FLY_28,
-            FSYS_YMAP_FLY_29,
-            FSYS_YMAP_FLY_30,
-            FSYS_YMAP_FLY_31,
-            FSYS_YMAP_FLY_32,
-            FSYS_YMAP_FLY_33,
-            FSYS_YMAP_FLY_34,
-            FSYS_YMAP_FLY_35,
-            FSYS_YMAP_FLY_MAGATAMA,
-            FSYS_YMAP_FLY_MOKKAN,
-            FSYS_YMAP_FLY_TSURUGI,
-            FSYS_YMAP_FLY_UTSUWA,
-            FSYS_YMAP_POKECEN_02,
-            FSYS_YMAP_POKECEN_03,
-            FSYS_YMAP_POKECEN_04,
-            FSYS_YMAP_POKECEN_05,
-            FSYS_YMAP_POKECEN_06,
-            FSYS_YMAP_POKECEN_07,
-            FSYS_YMAP_POKECEN_08,
-            FSYS_YMAP_POKECEN_09,
-            FSYS_YMAP_POKECEN_10,
-            FSYS_YMAP_POKECEN_11,
-            FSYS_YMAP_POKECEN_12,
-            FSYS_YMAP_POKECEN_13,
-            FSYS_YMAP_POKECEN_14,
-            FSYS_YMAP_POKECEN_15,
-            FSYS_YMAP_POKECEN_16,
-            FSYS_YMAP_POKECEN_17,
-            FSYS_YMAP_POKECEN_18,
-            FSYS_YMAP_POKECEN_19,
-            FSYS_YMAP_POKECEN_20,
-            FSYS_YMAP_POKECEN_21,
-            FSYS_YMAP_POKECEN_22,
-            FSYS_YMAP_POKECEN_23,
-            FSYS_YMAP_POKECEN_24,
-            FSYS_YMAP_POKECEN_25,
-            FSYS_YMAP_POKECEN_26,
-            FSYS_YMAP_POKECEN_27,
-            FSYS_YMAP_POKECEN_28,
-            FSYS_YMAP_POKECEN_29,
-            FSYS_YMAP_POKECEN_30,
-            FSYS_YMAP_POKECEN_31,
-            FSYS_YMAP_POKECEN_32,
-            FSYS_YMAP_POKECEN_33,
-            FSYS_YMAP_POKECEN_34,
-            FSYS_YMAP_POKECEN_35,
-
-            // Treasures of Ruin shrine toggles
-            FSYS_YMAP_MAGATAMA,
-            FSYS_YMAP_MOKKAN,
-            FSYS_YMAP_TSURUGI,
-            FSYS_YMAP_UTSUWA,
-            #endregion
-        };
         var accessor = SAV.Accessor;
-        foreach (var block in blocks)
-            accessor.GetBlock(block).ChangeBooleanType(SCTypeCode.Bool2);
+        foreach (var hash in FlyHashes)
+        {
+            if (accessor.TryGetBlock(hash, out var block))
+                block.ChangeBooleanType(SCTypeCode.Bool2);
+        }
         System.Media.SystemSounds.Asterisk.Play();
     }
+
+    private static ReadOnlySpan<uint> FlyHashes =>
+    [
+        #region Fly Flags
+        FSYS_YMAP_FLY_01,
+        FSYS_YMAP_FLY_02,
+        FSYS_YMAP_FLY_03,
+        FSYS_YMAP_FLY_04,
+        FSYS_YMAP_FLY_05,
+        FSYS_YMAP_FLY_06,
+        FSYS_YMAP_FLY_07,
+        FSYS_YMAP_FLY_08,
+        FSYS_YMAP_FLY_09,
+        FSYS_YMAP_FLY_10,
+        FSYS_YMAP_FLY_11,
+        FSYS_YMAP_FLY_12,
+        FSYS_YMAP_FLY_13,
+        FSYS_YMAP_FLY_14,
+        FSYS_YMAP_FLY_15,
+        FSYS_YMAP_FLY_16,
+        FSYS_YMAP_FLY_17,
+        FSYS_YMAP_FLY_18,
+        FSYS_YMAP_FLY_19,
+        FSYS_YMAP_FLY_20,
+        FSYS_YMAP_FLY_21,
+        FSYS_YMAP_FLY_22,
+        FSYS_YMAP_FLY_23,
+        FSYS_YMAP_FLY_24,
+        FSYS_YMAP_FLY_25,
+        FSYS_YMAP_FLY_26,
+        FSYS_YMAP_FLY_27,
+        FSYS_YMAP_FLY_28,
+        FSYS_YMAP_FLY_29,
+        FSYS_YMAP_FLY_30,
+        FSYS_YMAP_FLY_31,
+        FSYS_YMAP_FLY_32,
+        FSYS_YMAP_FLY_33,
+        FSYS_YMAP_FLY_34,
+        FSYS_YMAP_FLY_35,
+        FSYS_YMAP_FLY_MAGATAMA,
+        FSYS_YMAP_FLY_MOKKAN,
+        FSYS_YMAP_FLY_TSURUGI,
+        FSYS_YMAP_FLY_UTSUWA,
+        FSYS_YMAP_POKECEN_02,
+        FSYS_YMAP_POKECEN_03,
+        FSYS_YMAP_POKECEN_04,
+        FSYS_YMAP_POKECEN_05,
+        FSYS_YMAP_POKECEN_06,
+        FSYS_YMAP_POKECEN_07,
+        FSYS_YMAP_POKECEN_08,
+        FSYS_YMAP_POKECEN_09,
+        FSYS_YMAP_POKECEN_10,
+        FSYS_YMAP_POKECEN_11,
+        FSYS_YMAP_POKECEN_12,
+        FSYS_YMAP_POKECEN_13,
+        FSYS_YMAP_POKECEN_14,
+        FSYS_YMAP_POKECEN_15,
+        FSYS_YMAP_POKECEN_16,
+        FSYS_YMAP_POKECEN_17,
+        FSYS_YMAP_POKECEN_18,
+        FSYS_YMAP_POKECEN_19,
+        FSYS_YMAP_POKECEN_20,
+        FSYS_YMAP_POKECEN_21,
+        FSYS_YMAP_POKECEN_22,
+        FSYS_YMAP_POKECEN_23,
+        FSYS_YMAP_POKECEN_24,
+        FSYS_YMAP_POKECEN_25,
+        FSYS_YMAP_POKECEN_26,
+        FSYS_YMAP_POKECEN_27,
+        FSYS_YMAP_POKECEN_28,
+        FSYS_YMAP_POKECEN_29,
+        FSYS_YMAP_POKECEN_30,
+        FSYS_YMAP_POKECEN_31,
+        FSYS_YMAP_POKECEN_32,
+        FSYS_YMAP_POKECEN_33,
+        FSYS_YMAP_POKECEN_34,
+        FSYS_YMAP_POKECEN_35,
+
+        // Treasures of Ruin shrine toggles
+        FSYS_YMAP_MAGATAMA,
+        FSYS_YMAP_MOKKAN,
+        FSYS_YMAP_TSURUGI,
+        FSYS_YMAP_UTSUWA,
+
+        // Sudachi 1
+        FSYS_YMAP_SU1MAP_CHANGE, // can change map to Kitakami
+        FSYS_YMAP_FLY_SU1_AREA10,
+        FSYS_YMAP_FLY_SU1_BUSSTOP,
+        FSYS_YMAP_FLY_SU1_CENTER01,
+        FSYS_YMAP_FLY_SU1_PLAZA,
+        FSYS_YMAP_FLY_SU1_SPOT01,
+        FSYS_YMAP_FLY_SU1_SPOT02,
+        FSYS_YMAP_FLY_SU1_SPOT03,
+        FSYS_YMAP_FLY_SU1_SPOT04,
+        FSYS_YMAP_FLY_SU1_SPOT05,
+        FSYS_YMAP_FLY_SU1_SPOT06,
+
+        // Sudachi 2
+        FSYS_YMAP_S2_MAPCHANGE_ENABLE, // can change map to Blueberry Academy
+        FSYS_YMAP_FLY_SU2_DRAGON,
+        FSYS_YMAP_FLY_SU2_ENTRANCE,
+        FSYS_YMAP_FLY_SU2_FAIRY,
+        FSYS_YMAP_FLY_SU2_HAGANE,
+        FSYS_YMAP_FLY_SU2_HONOO,
+        FSYS_YMAP_FLY_SU2_SPOT01,
+        FSYS_YMAP_FLY_SU2_SPOT02,
+        FSYS_YMAP_FLY_SU2_SPOT03,
+        FSYS_YMAP_FLY_SU2_SPOT04,
+        FSYS_YMAP_FLY_SU2_SPOT05,
+        FSYS_YMAP_FLY_SU2_SPOT06,
+        FSYS_YMAP_FLY_SU2_SPOT07,
+        FSYS_YMAP_FLY_SU2_SPOT08,
+        FSYS_YMAP_FLY_SU2_SPOT09,
+        FSYS_YMAP_FLY_SU2_SPOT10,
+        FSYS_YMAP_FLY_SU2_SPOT11,
+        FSYS_YMAP_POKECEN_SU02,
+        #endregion
+    ];
 
     private void B_CollectAllStakes_Click(object sender, EventArgs e)
     {
@@ -281,20 +348,34 @@ public partial class SAV_Trainer9 : Form
         System.Media.SystemSounds.Asterisk.Play();
     }
 
+    private void B_ActivateSnacksworthLegendaries_Click(object sender, EventArgs e)
+    {
+        SAV.ActivateSnacksworthLegendaries();
+        System.Media.SystemSounds.Asterisk.Play();
+    }
+
+    private void B_UnlockCoaches_Click(object sender, EventArgs e)
+    {
+        SAV.UnlockAllCoaches();
+        System.Media.SystemSounds.Asterisk.Play();
+    }
+
     private void B_UnlockBikeUpgrades_Click(object sender, EventArgs e)
     {
-        var blocks = new[]
-        {
+        string[] blocks =
+        [
             "FSYS_RIDE_DASH_ENABLE",
             "FSYS_RIDE_SWIM_ENABLE",
             "FSYS_RIDE_HIJUMP_ENABLE",
             "FSYS_RIDE_GLIDE_ENABLE",
             "FSYS_RIDE_CLIMB_ENABLE",
-        };
+        ];
 
         var accessor = SAV.Accessor;
         foreach (var block in blocks)
             accessor.GetBlock(block).ChangeBooleanType(SCTypeCode.Bool2);
+        if (accessor.TryGetBlock("FSYS_RIDE_FLIGHT_ENABLE", out var fly))
+            fly.ChangeBooleanType(SCTypeCode.Bool2); // Base & DLC1 saves do not have this block
         System.Media.SystemSounds.Asterisk.Play();
     }
 
@@ -326,15 +407,7 @@ public partial class SAV_Trainer9 : Form
     private void B_UnlockClothing_Click(object sender, EventArgs e)
     {
         var accessor = SAV.Accessor;
-        var added = CB_Fashion.SelectedIndex switch
-        {
-            0 => PlayerFashionUnlock9.UnlockBase(accessor, SAV.Gender),
-            1 => PlayerFashionUnlock9.UnlockExtras(accessor),
-            2 => PlayerFashionUnlock9.UnlockPreorder(accessor, SAV.Gender),
-            3 => PlayerFashionUnlock9.UnlockPortal(accessor),
-            _ => throw new Exception("Invalid fashion type."),
-        };
-        WinFormsUtil.Alert(string.Format(MessageStrings.MsgClothingAdded, added));
+        PlayerFashionUnlock9.UnlockBase(accessor, SAV.Gender);
         System.Media.SystemSounds.Asterisk.Play();
     }
 }

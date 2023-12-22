@@ -125,10 +125,8 @@ public sealed class TransferVerifier : Verifier
     {
         var pk = data.Entity;
         var enc = data.EncounterMatch;
-        bool native = enc.Generation == 8 && pk.IsNative;
-        if (native && pk is PK8 pk8 && LocationsHOME.IsLocationSWSH(pk8.Met_Location))
-            native = false;
-        if (!native || IsHOMETrackerRequired(enc))
+        bool required = HomeTrackerUtil.IsRequired(enc, pk);
+        if (required)
             VerifyHOMETracker(data, pk);
 
         if (enc.Generation < 8)
@@ -169,17 +167,6 @@ public sealed class TransferVerifier : Verifier
             data.AddLine(GetInvalid(LTransferBad));
     }
 
-    // Encounters that originate in HOME -> transfer to save data
-    private static bool IsHOMETrackerRequired(IEncounterTemplate enc) => enc switch
-    {
-        EncounterSlot8GO => true,
-        WC8 { IsHOMEGift: true } => true,
-        WB8 { IsHOMEGift: true } => true,
-        WA8 { IsHOMEGift: true } => true,
-        WC9 { IsHOMEGift: true } => true,
-        _ => enc.Generation < 8,
-    };
-
     private void VerifyHOMETransfer(LegalityAnalysis data, PKM pk)
     {
         if (pk is not IScaledSize s)
@@ -210,7 +197,7 @@ public sealed class TransferVerifier : Verifier
         }
     }
 
-    public void VerifyVCEncounter(PKM pk, IEncounterTemplate original, ILocation transfer, LegalityAnalysis data)
+    public void VerifyVCEncounter(PKM pk, IEncounterTemplate original, EncounterTransfer7 transfer, LegalityAnalysis data)
     {
         if (pk.Met_Location != transfer.Location)
             data.AddLine(GetInvalid(LTransferMetLocation));
@@ -220,7 +207,7 @@ public sealed class TransferVerifier : Verifier
             data.AddLine(GetInvalid(LEggLocationNone));
 
         // Flag Moves that cannot be transferred
-        if (original is EncounterStatic2Odd) // Dizzy Punch Gifts
+        if (original is EncounterStatic2 { DizzyPunchEgg: true}) // Dizzy Punch Gifts
             FlagIncompatibleTransferMove(pk, data.Info.Moves, 146, 2); // can't have Dizzy Punch at all
 
         bool checkShiny = pk.VC2 || (pk.VC1 && GBRestrictions.IsTimeCapsuleTransferred(pk, data.Info.Moves, original).WasTimeCapsuleTransferred());

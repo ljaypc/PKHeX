@@ -25,7 +25,7 @@ public sealed class EvolutionGroupHOME : IEvolutionGroup
         return EvolutionGroup7.Instance;
     }
 
-    public void DiscardForOrigin(Span<EvoCriteria> result, PKM pk)
+    public void DiscardForOrigin(Span<EvoCriteria> result, PKM pk, EvolutionOrigin enc)
     {
         if (pk.SV)
             Discard(result, PersonalTable.SV);
@@ -216,12 +216,12 @@ public sealed class EvolutionEnvironment8 : IEvolutionEnvironment
 {
     private static readonly EvolutionTree Tree = EvolutionTree.Evolves8;
 
-    public bool TryDevolve(ISpeciesForm head, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result)
+    public bool TryDevolve<T>(T head, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result) where T : ISpeciesForm
     {
         return Tree.Reverse.TryDevolve(head, pk, currentMaxLevel, levelMin, skipChecks, out result);
     }
 
-    public bool TryEvolve(ISpeciesForm head, ISpeciesForm next, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result)
+    public bool TryEvolve<T>(T head, ISpeciesForm next, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result) where T : ISpeciesForm
     {
         var b = Tree.Forward.TryEvolve(head, next, pk, currentMaxLevel, levelMin, skipChecks, out result);
         return b && !IsEvolutionBanned(pk, head);
@@ -241,10 +241,10 @@ public sealed class EvolutionEnvironment8a : IEvolutionEnvironment
 {
     private static readonly EvolutionTree Tree = EvolutionTree.Evolves8a;
 
-    public bool TryDevolve(ISpeciesForm head, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result)
+    public bool TryDevolve<T>(T head, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result) where T : ISpeciesForm
         => Tree.Reverse.TryDevolve(head, pk, currentMaxLevel, levelMin, skipChecks, out result);
 
-    public bool TryEvolve(ISpeciesForm head, ISpeciesForm next, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result)
+    public bool TryEvolve<T>(T head, ISpeciesForm next, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result) where T : ISpeciesForm
         => Tree.Forward.TryEvolve(head, next, pk, currentMaxLevel, levelMin, skipChecks, out result);
 }
 
@@ -252,10 +252,10 @@ public sealed class EvolutionEnvironment8b : IEvolutionEnvironment
 {
     private static readonly EvolutionTree Tree = EvolutionTree.Evolves8b;
 
-    public bool TryDevolve(ISpeciesForm head, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result)
+    public bool TryDevolve<T>(T head, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result) where T : ISpeciesForm
         => Tree.Reverse.TryDevolve(head, pk, currentMaxLevel, levelMin, skipChecks, out result);
 
-    public bool TryEvolve(ISpeciesForm head, ISpeciesForm next, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result)
+    public bool TryEvolve<T>(T head, ISpeciesForm next, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result) where T : ISpeciesForm
         => Tree.Forward.TryEvolve(head, next, pk, currentMaxLevel, levelMin, skipChecks, out result);
 }
 
@@ -263,19 +263,15 @@ public sealed class EvolutionEnvironment9 : IEvolutionEnvironment
 {
     private static readonly EvolutionTree Tree = EvolutionTree.Evolves9;
 
-    public bool TryDevolve(ISpeciesForm head, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result)
+    public bool TryDevolve<T>(T head, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result) where T : ISpeciesForm
         => Tree.Reverse.TryDevolve(head, pk, currentMaxLevel, levelMin, skipChecks, out result);
 
-    public bool TryEvolve(ISpeciesForm head, ISpeciesForm next, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result)
+    public bool TryEvolve<T>(T head, ISpeciesForm next, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result) where T : ISpeciesForm
     {
         var b = Tree.Forward.TryEvolve(head, next, pk, currentMaxLevel, levelMin, skipChecks, out result);
         return b && !IsEvolutionBanned(head);
     }
 
     // Unreleased Item
-    private static bool IsEvolutionBanned(in ISpeciesForm head) => head.Species switch
-    {
-        (int)Species.Slowpoke => head.Form == 1,
-        _ => false,
-    };
+    private static bool IsEvolutionBanned(in ISpeciesForm head) => false;
 }

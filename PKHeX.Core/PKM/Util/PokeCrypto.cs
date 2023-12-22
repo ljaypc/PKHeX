@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using static System.Buffers.Binary.BinaryPrimitives;
@@ -59,8 +60,8 @@ public static class PokeCrypto
     /// <summary>
     /// Positions for shuffling.
     /// </summary>
-    private static ReadOnlySpan<byte> BlockPosition => new byte[]
-    {
+    private static ReadOnlySpan<byte> BlockPosition =>
+    [
         0, 1, 2, 3,
         0, 1, 3, 2,
         0, 2, 1, 3,
@@ -95,16 +96,16 @@ public static class PokeCrypto
         0, 3, 2, 1,
         1, 0, 2, 3,
         1, 0, 3, 2,
-    };
+    ];
 
     /// <summary>
-    /// Positions for unshuffling.
+    /// Positions for un-shuffling.
     /// </summary>
-    private static ReadOnlySpan<byte> BlockPositionInvert => new byte[]
-    {
+    private static ReadOnlySpan<byte> BlockPositionInvert =>
+    [
         0, 1, 2, 4, 3, 5, 6, 7, 12, 18, 13, 19, 8, 10, 14, 20, 16, 22, 9, 11, 15, 21, 17, 23,
         0, 1, 2, 4, 3, 5, 6, 7, // duplicates of 0-7 to eliminate modulus
-    };
+    ];
 
     /// <summary>
     /// Shuffles a 232 byte array containing Pokémon data.
@@ -114,14 +115,14 @@ public static class PokeCrypto
     /// <param name="blockSize">Size of shuffling chunks</param>
     /// <returns>Shuffled byte array</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static byte[] ShuffleArray(ReadOnlySpan<byte> data, uint sv, int blockSize)
+    public static byte[] ShuffleArray(ReadOnlySpan<byte> data, uint sv, [ConstantExpected(Min = 0)] int blockSize)
     {
         byte[] sdata = new byte[data.Length];
         ShuffleArray(data, sdata, sv, blockSize);
         return sdata;
     }
 
-    private static void ShuffleArray(ReadOnlySpan<byte> data, Span<byte> result, uint sv, int blockSize)
+    private static void ShuffleArray(ReadOnlySpan<byte> data, Span<byte> result, uint sv, [ConstantExpected(Min = 0)] int blockSize)
     {
         int index = (int)sv * 4;
         const int start = 8;
@@ -309,7 +310,7 @@ public static class PokeCrypto
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void CryptPKM(Span<byte> data, uint pv, int blockSize)
+    private static void CryptPKM(Span<byte> data, uint pv, [ConstantExpected(Min = 0)] int blockSize)
     {
         const int start = 8;
         int end = (4 * blockSize) + start;
@@ -319,7 +320,7 @@ public static class PokeCrypto
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void CryptPKM45(Span<byte> data, uint pv, uint chk, int blockSize)
+    private static void CryptPKM45(Span<byte> data, uint pv, uint chk, [ConstantExpected(Min = 0)] int blockSize)
     {
         const int start = 8;
         int end = (4 * blockSize) + start;

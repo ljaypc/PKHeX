@@ -7,7 +7,7 @@ public sealed class Daycare5 : SaveBlock<SAV5>
 {
     // struct daycareSlot 
     // bool32 occupied
-    // pk5party pk
+    // pk5 (party sized) pk
     // u32 expGained
     private const int SlotSize = 4 + PokeCrypto.SIZE_5PARTY + 4; // occupied u32 flag, pk5, exp
 
@@ -15,7 +15,7 @@ public sealed class Daycare5 : SaveBlock<SAV5>
     // daycareSlot[2]
     // ???->end ???
 
-    public const int DaycareSeedSize = 16; // 8 bytes, b2w2 only
+    public const int DaycareSeedSize = 16; // 8 bytes, B2/W2 only
 
     public Daycare5(SAV5 sav, int offset) : base(sav) => Offset = offset;
 
@@ -39,7 +39,7 @@ public sealed class Daycare5 : SaveBlock<SAV5>
     private int GetDaycareEXPOffset(int slot) => GetDaycareSlotOffset(slot) + 4 + PokeCrypto.SIZE_5PARTY;
 
     public bool? IsOccupied(int slot) => ReadUInt32LittleEndian(Data.AsSpan(GetDaycareSlotOffset(slot))) == 1;
-    public void SetOccupied(int slot, bool occupied) => WriteUInt32LittleEndian(Data.AsSpan(GetDaycareSlotOffset(slot)), (uint)(occupied ? 1 : 0));
+    public void SetOccupied(int slot, bool occupied) => WriteUInt32LittleEndian(Data.AsSpan(GetDaycareSlotOffset(slot)), occupied ? 1u : 0);
 
     public uint? GetEXP(int slot) => ReadUInt32LittleEndian(Data.AsSpan(GetDaycareEXPOffset(slot)));
     public void SetEXP(int slot, uint EXP) => WriteUInt32LittleEndian(Data.AsSpan(GetDaycareEXPOffset(slot)), EXP);

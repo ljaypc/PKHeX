@@ -51,6 +51,7 @@ public sealed class SAV7b : SAV_BEEF, ISaveBlock7b, IGameSync, IEventFlagArray
 
     // Save Block accessors
     public MyItem Items => Blocks.Items;
+    public Coordinates7b Coordinates => Blocks.Coordinates;
     public Misc7b Misc => Blocks.Misc;
     public Zukan7b Zukan => Blocks.Zukan;
     public MyStatus7b Status => Blocks.Status;
@@ -74,7 +75,7 @@ public sealed class SAV7b : SAV_BEEF, ISaveBlock7b, IGameSync, IEventFlagArray
     public override int MaxAbilityID => Legal.MaxAbilityID_7b;
 
     public override int MaxIV => 31;
-    public override int MaxEV => 252;
+    public override int MaxEV => EffortValues.Max252;
     public override int MaxStringLengthOT => 12;
     public override int MaxStringLengthNickname => 12;
     protected override int GiftCountMax => 48;
@@ -93,8 +94,8 @@ public sealed class SAV7b : SAV_BEEF, ISaveBlock7b, IGameSync, IEventFlagArray
     {
         var pb7 = (PB7)pk;
         // Apply to this Save File
-        var Date = DateTime.Now;
-        pb7.Trade(this, Date.Day, Date.Month, Date.Year);
+        var now = EncounterDate.GetDateSwitch();
+        pb7.Trade(this, now.Day, now.Month, now.Year);
         pb7.RefreshChecksum();
     }
 
@@ -105,7 +106,7 @@ public sealed class SAV7b : SAV_BEEF, ISaveBlock7b, IGameSync, IEventFlagArray
     protected override PB7 GetPKM(byte[] data) => new(data);
     protected override byte[] DecryptPKM(byte[] data) => PokeCrypto.DecryptArray6(data);
     public override int GetBoxOffset(int box) => Box + (box * BoxSlotCount * SIZE_BOXSLOT);
-    protected override IList<int>[] SlotPointers => new[] { Blocks.Storage.PokeListInfo };
+    protected override IList<int>[] SlotPointers => [ Blocks.Storage.PokeListInfo ];
 
     public override int GetPartyOffset(int slot) => Blocks.Storage.GetPartyOffset(slot);
     public override int PartyCount { get => Blocks.Storage.PartyCount; protected set => Blocks.Storage.PartyCount = value; }

@@ -8,11 +8,11 @@ namespace PKHeX.Core;
 public sealed class PK6 : G6PKM, IRibbonSetEvent3, IRibbonSetEvent4, IRibbonSetCommon3, IRibbonSetCommon4, IRibbonSetCommon6, IRibbonSetMemory6, IRibbonSetRibbons,
     IContestStats, IGeoTrack, ISuperTrain, IFormArgument, ITrainerMemories, IAffection, IGroundTile
 {
-    public override ReadOnlySpan<ushort> ExtraBytes => new ushort[]
-    {
+    public override ReadOnlySpan<ushort> ExtraBytes =>
+    [
         0x36, 0x37, // Unused Ribbons
         0x58, 0x59, 0x73, 0x90, 0x91, 0x9E, 0x9F, 0xA0, 0xA1, 0xA7, 0xAA, 0xAB, 0xAC, 0xAD, 0xC8, 0xC9, 0xD7, 0xE4, 0xE5, 0xE6, 0xE7,
-    };
+    ];
 
     public override EntityContext Context => EntityContext.Gen6;
     public override PersonalInfo6AO PersonalInfo => PersonalTable.AO.GetFormEntry(Species, Form);
@@ -381,7 +381,8 @@ public sealed class PK6 : G6PKM, IRibbonSetEvent3, IRibbonSetEvent4, IRibbonSetC
     public override int Stat_SPD { get => ReadUInt16LittleEndian(Data.AsSpan(0xFC)); set => WriteUInt16LittleEndian(Data.AsSpan(0xFC), (ushort)value); }
     #endregion
 
-    public int SuperTrainingMedalCount(int maxCount = 30) => BitOperations.PopCount(SuperTrainBitFlags >> 2);
+    private const int MedalCount = 30;
+    public int SuperTrainingMedalCount(int lowBitCount = MedalCount) => BitOperations.PopCount((SuperTrainBitFlags >> 2) & (uint.MaxValue >> (MedalCount - lowBitCount)));
 
     public bool IsUntradedEvent6 => Geo1_Country == 0 && Geo1_Region == 0 && Met_Location / 10000 == 4 && Gen6;
 
@@ -442,7 +443,7 @@ public sealed class PK6 : G6PKM, IRibbonSetEvent3, IRibbonSetEvent4, IRibbonSetC
         CurrentHandler = 1;
         HT_Gender = tr.Gender;
 
-        // Make a memory if no memory already exists. Pretty terrible way of doing this but I'd rather not overwrite existing memories.
+        // Make a memory if no memory already exists. Pretty terrible way of doing this, but I'd rather not overwrite existing memories.
         if (HT_Memory == 0)
             this.SetTradeMemoryHT6(false);
     }
@@ -486,18 +487,14 @@ public sealed class PK6 : G6PKM, IRibbonSetEvent3, IRibbonSetEvent4, IRibbonSetC
             pk7.SetMarking(i, GetMarking(i));
 
         var an = AbilityNumber;
-        switch (an)
+        if (an is 1 or 2 or 4) // Valid Ability Numbers
         {
-            case 1 or 2 or 4: // Valid Ability Numbers
-                int index = an >> 1;
-
-                var abilities = (IPersonalAbility12H)PersonalInfo;
-                if (abilities.GetAbilityAtIndex(index) == Ability) // correct pair
-                    pk7.Ability = pk7.PersonalInfo.GetAbilityAtIndex(index);
-                break;
+            int index = an >> 1;
+            if (PersonalInfo.GetAbilityAtIndex(index) == Ability) // correct pair
+                pk7.Ability = pk7.PersonalInfo.GetAbilityAtIndex(index);
         }
 
-        pk7.SetTradeMemoryHT6(true); // oh no, memories on gen7 pk
+        pk7.SetTradeMemoryHT6(true); // oh no, memories on Gen7 pk
         RecentTrainerCache.SetFirstCountryRegion(pk7);
 
         // Bank-accurate data zeroing

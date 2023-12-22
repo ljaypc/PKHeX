@@ -1,5 +1,3 @@
-using System;
-
 namespace PKHeX.Core;
 
 /// <summary>
@@ -12,67 +10,14 @@ namespace PKHeX.Core;
 internal static class EncountersWC3
 {
     internal static readonly WC3[] Encounter_Event3_Special =
-    {
+    [
         new() { Species = 385, Level = 05, ID32 = 20043, OT_Gender = 0, Version = GameVersion.R, Method = PIDType.BACD_R, OT_Name = "WISHMKR", CardTitle = "Wishmaker Jirachi", Language = (int)LanguageID.English },
-    };
+    ];
 
-    private static WC3[] GetIngameCXDData()
-    {
-        var langs = LanguageCXD;
-        string[] h = {string.Empty, "ダニー", "HORDEL", "VOLKER", "ODINO", "HORAZ", string.Empty, "HORDEL"};
-        string[] d = {string.Empty, "ギンザル", "DUKING", "DOKING", "RODRIGO", "GRAND", string.Empty, "GERMÁN"};
-        string[] z = {string.Empty, "コンセント", "ZAPRONG", "ZAPRONG", "ZAPRONG", "ZAPRONG", string.Empty, "ZAPRONG"};
-
-        const int count = 5;
-        var result = new WC3[count * langs.Length];
-        for (int i = 0, ofs = 0; i < langs.Length; i++)
-        {
-            var id = langs[i];
-            var l = (int)id;
-
-            // Colosseum
-            result[ofs++] = new() { Species = 311, Level = 13, Language = l, Location = 254, ID32 = 37149, OT_Gender = 0, OT_Name = d[l], Version = GameVersion.COLO, CardTitle = $"Special Gift ({id})",     Method = PIDType.CXD, Shiny = Shiny.Never, Moves = new(045, 086, 098, 270) }; // Plusle @ Ingame Trade
-            // XD
-            result[ofs++] = new(true) { Species = 239, Level = 20, Language = l, Location = 164, TID16 = 41400, OT_Gender = 0, OT_Name = h[l], Version = GameVersion.XD,   CardTitle = $"Trade Togepi ({id})",     Method = PIDType.CXD, Moves = new(008, 007, 009, 238), Nickname = z[l] }; // Elekid @ Snagem Hideout
-            result[ofs++] = new(true) { Species = 307, Level = 20, Language = l, Location = 116, TID16 = 37149, OT_Gender = 0, OT_Name = d[l], Version = GameVersion.XD,   CardTitle = $"Trade Trapinch ({id})",   Method = PIDType.CXD, Moves = new(223, 093, 247, 197) }; // Meditite @ Pyrite Town
-            result[ofs++] = new(true) { Species = 213, Level = 20, Language = l, Location = 116, TID16 = 37149, OT_Gender = 0, OT_Name = d[l], Version = GameVersion.XD,   CardTitle = $"Trade Surskit ({id})",    Method = PIDType.CXD, Moves = new(092, 164, 188, 227) }; // Shuckle @ Pyrite Town
-            result[ofs++] = new(true) { Species = 246, Level = 20, Language = l, Location = 116, TID16 = 37149, OT_Gender = 0, OT_Name = d[l], Version = GameVersion.XD,   CardTitle = $"Trade Wooper ({id})",     Method = PIDType.CXD, Moves = new(201, 349, 044, 200) }; // Larvitar @ Pyrite Town
-        }
-        return result;
-    }
-
-    private static ReadOnlySpan<LanguageID> LanguageCXD => new[] { LanguageID.Japanese, LanguageID.English, LanguageID.French, LanguageID.Italian, LanguageID.German, LanguageID.Spanish };
-
-    private static WC3[] GetIngameCXDDataMainline()
-    {
-        var langs = LanguageCXD;
-        string[] p = { string.Empty, "コロシアム", "COLOS", "COLOSSEUM", "ARENA", "COLOSSEUM", string.Empty, "CLAUDIO" };
-        string[] c = { string.Empty, "アゲト", "AGATE", "SAMARAGD", "SOFO", "EMERITAE", string.Empty, "ÁGATA" };
-        string[] m = { string.Empty, "バトルやま", "MATTLE", "MT BATAILL", "MONTE LOTT", "DUELLBERG", string.Empty, "ERNESTO" }; // truncated on ck3->pk3 transfer
-
-        const int count = 3;
-        var result = new WC3[count * langs.Length];
-        for (int i = 0, ofs = 0; i < langs.Length; i++)
-        {
-            var id = langs[i];
-            var l = (int)id;
-            var nd = id != LanguageID.Japanese;
-
-            // Colosseum
-            result[ofs++] = new() { Species = 025, Level = 10, Language = l, Location = 255, ID32 = 31121, OT_Gender = 0, OT_Name = p[l], Version = GameVersion.R,    CardTitle = $"Colosseum Pikachu ({id})",Method = PIDType.CXD, Shiny = Shiny.Never, NotDistributed = nd }; // Colosseum Pikachu bonus gift
-            result[ofs++] = new() { Species = 251, Level = 10, Language = l, Location = 255, ID32 = 31121, OT_Gender = 1, OT_Name = c[l], Version = GameVersion.R,    CardTitle = $"Agate Celebi ({id})",     Method = PIDType.CXD, Shiny = Shiny.Never, NotDistributed = nd }; // Ageto Celebi bonus gift
-            result[ofs++] = new() { Species = 250, Level = 70, Language = l, Location = 255, ID32 = 10048, OT_Gender = 0, OT_Name = m[l], Version = GameVersion.S,    CardTitle = $"Mt. Battle Ho-Oh ({id})", Method = PIDType.CXD, Shiny = Shiny.Never, Moves = new(105, 126, 241, 129) }; // Ho-oh @ Mt. Battle
-        }
-        return result;
-    }
-
-    internal static readonly WC3[] Encounter_WC3CXD = GetIngameCXDData();
-    internal static readonly WC3[] Encounter_WC3CXDMain = GetIngameCXDDataMainline();
-
-    internal static readonly WC3[] Encounter_Event3 = ArrayUtil.ConcatAll(Encounter_Event3_Special, Encounter_WC3CXD, Encounter_WC3CXDMain);
+    internal static readonly WC3[] Encounter_Event3 = Encounter_Event3_Special;
 
     internal static readonly WC3[] Encounter_Event3_FRLG =
-    {
+    [
         // PCJP - Egg Pokémon Present Eggs (March 21 to April 4, 2004)
         new(true) { Species = 043, IsEgg = true, Level = 05, Version = GameVersion.FRLG, Moves = new(071,073,000,000), Method = PIDType.Method_2 }, // Oddish with Leech Seed
         new(true) { Species = 052, IsEgg = true, Level = 05, Version = GameVersion.FRLG, Moves = new(010,045,080,000), Method = PIDType.Method_2 }, // Meowth with Petal Dance
@@ -103,10 +48,10 @@ internal static class EncountersWC3
         new(true) { Species = 331, IsEgg = true, Level = 05, Version = GameVersion.FRLG, Moves = new(040,043,071,227), Method = PIDType.Method_2 }, // Cacnea with Encore
         new(true) { Species = 341, IsEgg = true, Level = 05, Version = GameVersion.FRLG, Moves = new(145,346,000,000), Method = PIDType.Method_2 }, // Corphish with Water Sport
         new(true) { Species = 360, IsEgg = true, Level = 05, Version = GameVersion.FRLG, Moves = new(150,204,227,321), Method = PIDType.Method_2 }, // Wynaut with Tickle
-    };
+    ];
 
     internal static readonly WC3[] Encounter_Event3_RS =
-    {
+    [
         // PCJP - Pokémon Center 5th Anniversary Eggs (April 25 to May 18, 2003)
         new() { Species = 172, IsEgg = true, Level = 05, OT_Name = "オヤＮＡＭＥ", Version = GameVersion.R, Moves = new(084,204,298,000), Method = PIDType.BACD_R }, // Pichu with Teeter Dance
         new() { Species = 172, IsEgg = true, Level = 05, OT_Name = "オヤＮＡＭＥ", Version = GameVersion.R, Moves = new(084,204,273,000), Method = PIDType.BACD_R }, // Pichu with Wish
@@ -124,11 +69,11 @@ internal static class EncountersWC3
         new() { Species = 385, Level = 05, ID32 = 30719, OT_Name = "ネガイボシ", Version = GameVersion.RS, Method = PIDType.BACD_U_AX, Language = (int)LanguageID.Japanese, Shiny = Shiny.Never },
 
         // Berry Glitch Fix
-        // PCJP - (December 29, 2003 to March 31, 2004)
+        // PCJP - (December 29, 2003, to March 31, 2004)
         new() { Species = 263, Level = 5, Version = GameVersion.S, Language = (int)LanguageID.Japanese, Method = PIDType.BACD_R_S, ID32 = 21121, OT_Name = "ルビー", OT_Gender = 1, Shiny = Shiny.Always },
         new() { Species = 263, Level = 5, Version = GameVersion.S, Language = (int)LanguageID.Japanese, Method = PIDType.BACD_R_S, ID32 = 21121, OT_Name = "サファイア", OT_Gender = 0, Shiny = Shiny.Always },
 
-        // EBGames/GameStop (March 1, 2004 to April 22, 2007), also via multi-game discs
+        // EBGames/GameStop (March 1, 2004, to April 22, 2007), also via multi-game discs
         new() { Species = 263, Level = 5, Version = GameVersion.S, Language = (int)LanguageID.English, Method = PIDType.BACD_R_S, ID32 = 30317, OT_Name = "RUBY", OT_Gender = 1 },
         new() { Species = 263, Level = 5, Version = GameVersion.S, Language = (int)LanguageID.English, Method = PIDType.BACD_R_S, ID32 = 30317, OT_Name = "SAPHIRE", OT_Gender = 0 },
 
@@ -252,10 +197,10 @@ internal static class EncountersWC3
         new() { Species = 359, Level = 70, Version = GameVersion.R, Moves = new(104,163,248,195), Language = (int)LanguageID.English, Method = PIDType.BACD_R, ID32 = 00010, OT_Name = "10 ANIV", Shiny = Shiny.Never }, // Absol
         new() { Species = 380, Level = 70, Version = GameVersion.R, Moves = new(296,094,105,204), Language = (int)LanguageID.English, Method = PIDType.BACD_R, ID32 = 00010, OT_Name = "10 ANIV", HeldItem = 191, Shiny = Shiny.Never }, // Latias
         new() { Species = 381, Level = 70, Version = GameVersion.R, Moves = new(295,094,105,349), Language = (int)LanguageID.English, Method = PIDType.BACD_R, ID32 = 00010, OT_Name = "10 ANIV", HeldItem = 191, Shiny = Shiny.Never }, // Latios
-    };
+    ];
 
     internal static readonly WC3[] Encounter_Event3_Common =
-    {
+    [
         // Pokémon Box -- RSE Recipient
         new() { Species = 333, IsEgg = true, Level = 05, Moves = new(064,045,206,000), Method = PIDType.BACD_U, OT_Gender = 1, OT_Name = "ＡＺＵＳＡ", Version = GameVersion.RSE }, // Swablu Egg with False Swipe
         new() { Species = 263, IsEgg = true, Level = 05, Moves = new(033,045,039,245), Method = PIDType.BACD_U, OT_Gender = 1, OT_Name = "ＡＺＵＳＡ", Version = GameVersion.RSE }, // Zigzagoon Egg with Extreme Speed
@@ -283,7 +228,7 @@ internal static class EncountersWC3
         new() { Species = 331, IsEgg = true, Level = 05, Met_Level = 05, TID16 = 50318, OT_Gender = 0, OT_Name = "ポケパーク", Version = GameVersion.R, Moves = new(227), Method = PIDType.BACD_R }, // Cacnea with Encore
         new() { Species = 341, IsEgg = true, Level = 05, Met_Level = 05, TID16 = 50318, OT_Gender = 0, OT_Name = "ポケパーク", Version = GameVersion.R, Moves = new(346), Method = PIDType.BACD_R }, // Corphish with Water Sport
         new() { Species = 360, IsEgg = true, Level = 05, Met_Level = 05, TID16 = 50318, OT_Gender = 0, OT_Name = "ポケパーク", Version = GameVersion.R, Moves = new(321), Method = PIDType.BACD_R }, // Wynaut with Tickle
-    };
+    ];
 
-    internal static readonly WC3[] Encounter_WC3 = ArrayUtil.ConcatAll(Encounter_Event3, Encounter_Event3_RS, Encounter_Event3_FRLG, Encounter_Event3_Common);
+    internal static readonly WC3[] Encounter_WC3 = [..Encounter_Event3, ..Encounter_Event3_RS, ..Encounter_Event3_FRLG, ..Encounter_Event3_Common];
 }

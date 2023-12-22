@@ -7,7 +7,7 @@ namespace PKHeX.Core;
 /// <summary>
 /// Generation 1 <see cref="SaveFile"/> object.
 /// </summary>
-public sealed class SAV1 : SaveFile, ILangDeviantSave, IEventFlagArray
+public sealed class SAV1 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWorkArray<byte>
 {
     protected internal override string ShortSummary => $"{OT} ({Version}) - {PlayTimeString}";
     public override string Extension => ".sav";
@@ -17,10 +17,11 @@ public sealed class SAV1 : SaveFile, ILangDeviantSave, IEventFlagArray
     public string SaveRevisionString => (Japanese ? "J" : "U") + (IsVirtualConsole ? "VC" : "GB");
     public bool Japanese { get; }
     public bool Korean => false;
+    public override int Language => Japanese ? 1 : -1;
 
     public override PersonalTable1 Personal { get; }
 
-    public override ReadOnlySpan<ushort> HeldItems => Array.Empty<ushort>();
+    public override ReadOnlySpan<ushort> HeldItems => [];
 
     public override IReadOnlyList<string> PKMExtensions => Array.FindAll(PKM.Extensions, f =>
     {
@@ -54,8 +55,13 @@ public sealed class SAV1 : SaveFile, ILangDeviantSave, IEventFlagArray
     private void Initialize(GameVersion versionOverride)
     {
         // see if RBY can be differentiated
-        if (Starter != 0 && versionOverride is not (GameVersion.RB or GameVersion.YW))
-            Version = Yellow ? GameVersion.YW : GameVersion.RB;
+        if (versionOverride is not (GameVersion.RB or GameVersion.YW))
+        {
+            if (Starter != 0)
+                Version = Yellow ? GameVersion.YW : GameVersion.RB;
+            else
+                Version = Data[Offsets.PikaFriendship] != 0 ? GameVersion.YW : GameVersion.RB;
+        }
 
         Box = Data.Length;
         Array.Resize(ref Data, Data.Length + SIZE_RESERVED);
@@ -163,6 +169,11 @@ public sealed class SAV1 : SaveFile, ILangDeviantSave, IEventFlagArray
         SetFlag(Offsets.EventFlag + (flagNumber >> 3), flagNumber & 7, value);
     }
 
+    // Event Work
+    public int EventWorkCount => 0x100;
+    public byte GetWork(int index) => Data[Offsets.EventWork + index];
+    public void SetWork(int index, byte value) => Data[Offsets.EventWork + index] = value;
+
     protected override byte[] GetFinalData()
     {
         var capacity = Japanese ? PokeListType.StoredJP : PokeListType.Stored;
@@ -226,7 +237,7 @@ public sealed class SAV1 : SaveFile, ILangDeviantSave, IEventFlagArray
     public override int MaxCoins => 9999;
 
     public override int BoxCount => Japanese ? 8 : 12;
-    public override int MaxEV => 65535;
+    public override int MaxEV => EffortValues.Max12;
     public override int MaxIV => 15;
     public override int Generation => 1;
     public override EntityContext Context => EntityContext.Gen1;
@@ -413,10 +424,10 @@ public sealed class SAV1 : SaveFile, ILangDeviantSave, IEventFlagArray
         get
         {
             InventoryPouch[] pouch =
-            {
+            [
                 new InventoryPouchGB(InventoryType.Items, ItemStorage1.Instance, 99, Offsets.Items, 20),
                 new InventoryPouchGB(InventoryType.PCItems, ItemStorage1.Instance, 99, Offsets.PCItems, 50),
-            };
+            ];
             return pouch.LoadAll(Data);
         }
         set => value.SaveAll(Data);

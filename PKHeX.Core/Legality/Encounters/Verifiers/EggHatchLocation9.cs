@@ -19,8 +19,8 @@ public static class EggHatchLocation9
 
     // 130 Naranja Academy does not exist in Violet
     // 131 Uva Academy does not exist in Scarlet
-    private static ReadOnlySpan<byte> LocationPermitted9 => new byte[]
-    {
+    private static ReadOnlySpan<byte> LocationPermitted9 =>
+    [
         0, 0, 0, 0, 0, 0, 3, 0, 0, 0,
         3, 0, 3, 0, 3, 0, 3, 0, 3, 0,
         3, 0, 3, 0, 3, 0, 3, 0, 3, 0,
@@ -34,6 +34,13 @@ public static class EggHatchLocation9
         0, 3, 0, 3, 0, 3, 0, 3, 0, 3,
         0, 3, 0, 3, 0, 3, 0, 3, 3, 0,
         0, 0, 0, 0, 3, 0, 0, 0, 0, 0,
-        1, 2,
-    };
+        1, 2, 3, 0, 3, 0, 3, 0, 3, 0,
+        3, 0, 3, 0, 3, 0, 3, 0, 3, 0,
+        0, 0, 3, 0, 0, 0, 3, 0, 3, 0,
+        3, 0, 3, 0, 3, 0, 3, 0, 3, 0,
+        3, 0, 3, 0, 3, 0, 3, 0, 3, 0,
+        3, 0, 3, 0, 3, 0, 3, 0, 3, 0,
+        3, 0, 3, 0, 3, 0, 3, 0, 3, 0,
+        3, // Terarium (Entry Tunnel)
+    ];
 }

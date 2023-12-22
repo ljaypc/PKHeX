@@ -1,4 +1,3 @@
-//#define VERIFY_GEN
 using System;
 using System.Buffers;
 using System.Collections.Generic;
@@ -24,38 +23,6 @@ public static class EncounterMovesetGenerator
     public static void ResetFilters() => PriorityList = (EncounterTypeGroup[])Enum.GetValues(typeof(EncounterTypeGroup));
 
     /// <summary>
-    /// Gets possible <see cref="PKM"/> objects that allow all moves requested to be learned.
-    /// </summary>
-    /// <param name="pk">Rough Pokémon data which contains the requested species, gender, and form.</param>
-    /// <param name="info">Trainer information of the receiver.</param>
-    /// <param name="moves">Moves that the resulting <see cref="IEncounterable"/> must be able to learn.</param>
-    /// <param name="versions">Any specific version(s) to iterate for. If left blank, all will be checked.</param>
-    /// <returns>A consumable <see cref="PKM"/> list of possible results.</returns>
-    /// <remarks>When updating, update the sister <see cref="GenerateEncounters(PKM,ITrainerInfo,ReadOnlyMemory{ushort},GameVersion[])"/> method.</remarks>
-    public static IEnumerable<PKM> GeneratePKMs(PKM pk, ITrainerInfo info, ReadOnlyMemory<ushort> moves, params GameVersion[] versions)
-    {
-        if (!IsSane(pk, moves.Span))
-            yield break;
-
-        OptimizeCriteria(pk, info);
-        var vers = versions.Length >= 1 ? versions : GameUtil.GetVersionsWithinRange(pk, pk.Format);
-        foreach (var ver in vers)
-        {
-            var encounters = GenerateVersionEncounters(pk, moves, ver);
-            foreach (var enc in encounters)
-            {
-                var result = enc.ConvertToPKM(info);
-#if VERIFY_GEN
-                    var la = new LegalityAnalysis(result);
-                    if (!la.Valid)
-                        throw new Exception("Legality analysis of generated Pokémon is invalid");
-#endif
-                yield return result;
-            }
-        }
-    }
-
-    /// <summary>
     /// Gets possible <see cref="IEncounterable"/> objects that allow all moves requested to be learned.
     /// </summary>
     /// <param name="pk">Rough Pokémon data which contains the requested species, gender, and form.</param>
@@ -63,7 +30,6 @@ public static class EncounterMovesetGenerator
     /// <param name="moves">Moves that the resulting <see cref="IEncounterable"/> must be able to learn.</param>
     /// <param name="versions">Any specific version(s) to iterate for. If left blank, all will be checked.</param>
     /// <returns>A consumable <see cref="IEncounterable"/> list of possible results.</returns>
-    /// <remarks>When updating, update the sister <see cref="GeneratePKMs(PKM,ITrainerInfo,ReadOnlyMemory{ushort},GameVersion[])"/> method.</remarks>
     public static IEnumerable<IEncounterable> GenerateEncounters(PKM pk, ITrainerInfo info, ReadOnlyMemory<ushort> moves, params GameVersion[] versions)
     {
         if (!IsSane(pk, moves.Span))
@@ -80,29 +46,16 @@ public static class EncounterMovesetGenerator
     }
 
     /// <summary>
-    /// Adapts the input <see cref="pk"/> so that it may match as many encounters as possible (indications of trades to other game pairs, etc).
+    /// Adapts the input <see cref="pk"/> so that it may match as many encounters as possible (indications of trades to other game pairs, etc.).
     /// </summary>
     /// <param name="pk">Rough Pokémon data which contains the requested species, gender, and form.</param>
     /// <param name="info">Trainer information of the receiver.</param>
-    public static void OptimizeCriteria(PKM pk, ITrainerID16 info)
+    public static void OptimizeCriteria(PKM pk, ITrainerID32 info)
     {
-        pk.TID16 = info.TID16; // Necessary for Gen2 Headbutt encounters.
+        pk.ID32 = info.ID32; // Necessary for Gen2 Headbutt encounters and Honey Tree encounters
         var htTrash = pk.HT_Trash;
         if (htTrash.Length != 0)
             htTrash[0] = 1; // Fake Trash to indicate trading.
-    }
-
-    /// <summary>
-    /// Gets possible <see cref="PKM"/> objects that allow all moves requested to be learned within a specific generation.
-    /// </summary>
-    /// <param name="pk">Rough Pokémon data which contains the requested species, gender, and form.</param>
-    /// <param name="info">Trainer information of the receiver.</param>
-    /// <param name="generation">Specific generation to iterate versions for.</param>
-    /// <param name="moves">Moves that the resulting <see cref="IEncounterable"/> must be able to learn.</param>
-    public static IEnumerable<PKM> GeneratePKMs(PKM pk, ITrainerInfo info, int generation, ReadOnlyMemory<ushort> moves)
-    {
-        var vers = GameUtil.GetVersionsInGeneration(generation, pk.Version);
-        return GeneratePKMs(pk, info, moves, vers);
     }
 
     /// <summary>
@@ -173,7 +126,7 @@ public static class EncounterMovesetGenerator
     /// <returns>A consumable <see cref="IEncounterable"/> list of possible encounters.</returns>
     private static IEnumerable<IEncounterable> GenerateVersionEncounters(PKM pk, ReadOnlyMemory<ushort> moves, GameVersion version)
     {
-        pk.Version = (int)version;
+        pk.Version = (byte)version;
         var context = version.GetContext();
         var generation = (byte)version.GetGeneration();
         foreach (var enc in GenerateVersionEncounters(pk, moves, version, generation, context))
@@ -191,7 +144,7 @@ public static class EncounterMovesetGenerator
 
     private static IEnumerable<IEncounterable> GenerateVersionEncounters(PKM pk, ReadOnlyMemory<ushort> moves, GameVersion version, byte generation, EntityContext context)
     {
-        var origin = new EvolutionOrigin(pk.Species, (byte)version, generation, 1, 100, true);
+        var origin = new EvolutionOrigin(pk.Species, (byte)version, generation, 1, 100, OriginOptions.EncounterTemplate);
         var chain = EvolutionChain.GetOriginChain(pk, origin);
         if (chain.Length == 0)
             yield break;
@@ -209,7 +162,7 @@ public static class EncounterMovesetGenerator
     private static bool IsSane(PKM pk, ReadOnlySpan<ushort> moves)
     {
         var species = pk.Species;
-        if ((uint)(species - 1) >= pk.MaxSpeciesID) // can enter this method after failing to set a species ID that cannot exist in the format
+        if (species - 1u >= pk.MaxSpeciesID) // can enter this method after failing to set a species ID that cannot exist in the format
             return false;
         if (AnyMoveOutOfRange(moves, pk.MaxMoveID))
             return false;
@@ -254,12 +207,12 @@ public static class EncounterMovesetGenerator
     private static ushort[] GetNeededMoves(PKM pk, ReadOnlySpan<ushort> moves, GameVersion ver, int generation, EntityContext context)
     {
         if (pk.Species == (int)Species.Smeargle)
-            return Array.Empty<ushort>();
+            return [];
 
         var length = pk.MaxMoveID + 1;
         var rent = ArrayPool<bool>.Shared.Rent(length);
         var permitted = rent.AsSpan(0, length);
-        var enc = new EvolutionOrigin(pk.Species, (byte)ver, (byte)generation, 1, 100, true);
+        var enc = new EvolutionOrigin(pk.Species, (byte)ver, (byte)generation, 1, 100, OriginOptions.EncounterTemplate);
         var history = EvolutionChain.GetEvolutionChainsSearch(pk, enc, context, 0);
         var e = new NeededEncounter(context, generation, ver); // default empty
         LearnPossible.Get(pk, e, history, permitted);
@@ -278,7 +231,7 @@ public static class EncounterMovesetGenerator
         ArrayPool<bool>.Shared.Return(rent);
 
         if (ctr == 0)
-            return Array.Empty<ushort>();
+            return [];
         return result[..ctr].ToArray();
     }
 

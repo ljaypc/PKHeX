@@ -12,8 +12,8 @@ public sealed class LearnSource6AO : ILearnSource<PersonalInfo6AO>, IEggSource
 {
     public static readonly LearnSource6AO Instance = new();
     private static readonly PersonalTable6AO Personal = PersonalTable.AO;
-    private static readonly Learnset[] Learnsets = LearnsetReader.GetArray(BinLinkerAccessor.Get(Util.GetBinaryResource("lvlmove_ao.pkl"), "ao"));
-    private static readonly EggMoves6[] EggMoves = EggMoves6.GetArray(BinLinkerAccessor.Get(Util.GetBinaryResource("eggmove_ao.pkl"), "ao"));
+    private static readonly Learnset[] Learnsets = LearnsetReader.GetArray(BinLinkerAccessor.Get(Util.GetBinaryResource("lvlmove_ao.pkl"), "ao"u8));
+    private static readonly EggMoves6[] EggMoves = EggMoves6.GetArray(BinLinkerAccessor.Get(Util.GetBinaryResource("eggmove_ao.pkl"), "ao"u8));
     private const int MaxSpecies = Legal.MaxSpeciesID_6;
     private const LearnEnvironment Game = ORAS;
 
@@ -39,7 +39,7 @@ public sealed class LearnSource6AO : ILearnSource<PersonalInfo6AO>, IEggSource
     public ReadOnlySpan<ushort> GetEggMoves(ushort species, byte form)
     {
         if (species > MaxSpecies)
-            return ReadOnlySpan<ushort>.Empty;
+            return [];
         return EggMoves[species].Moves;
     }
 
@@ -122,8 +122,8 @@ public sealed class LearnSource6AO : ILearnSource<PersonalInfo6AO>, IEggSource
         }
     }
 
-    internal static ReadOnlySpan<ushort> TMHM_AO => new ushort[]
-    {
+    internal static ReadOnlySpan<ushort> TMHM_AO =>
+    [
         468, 337, 473, 347, 046, 092, 258, 339, 474, 237,
         241, 269, 058, 059, 063, 113, 182, 240, 355, 219,
         218, 076, 479, 085, 087, 089, 216, 091, 094, 247,
@@ -136,5 +136,5 @@ public sealed class LearnSource6AO : ILearnSource<PersonalInfo6AO>, IEggSource
         430, 433, 528, 290, 555, 267, 399, 612, 605, 590,
 
         15, 19, 57, 70, 127, 249, 291,
-    };
+    ];
 }

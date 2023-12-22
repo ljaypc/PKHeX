@@ -46,6 +46,7 @@ public sealed class SAV5B2W2 : SAV5, ISaveBlock5B2W2
     public override Zukan5 Zukan => Blocks.Zukan;
     public override Misc5 Misc => Blocks.Misc;
     public override MysteryBlock5 Mystery => Blocks.Mystery;
+    public override Chatter5 Chatter => Blocks.Chatter;
     public override Daycare5 Daycare => Blocks.Daycare;
     public override BoxLayout5 BoxLayout => Blocks.BoxLayout;
     public override PlayerData5 PlayerData => Blocks.PlayerData;
@@ -56,6 +57,7 @@ public sealed class SAV5B2W2 : SAV5, ISaveBlock5B2W2
     public override UnityTower5 UnityTower => Blocks.UnityTower;
     public FestaBlock5 Festa => Blocks.Festa;
     public PWTBlock5 PWT => Blocks.PWT;
+    public MedalList5 Medals => Blocks.Medals;
     public int Fused => 0x1FA00 + sizeof(uint);
     public override int GTS => 0x20400;
 

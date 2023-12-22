@@ -2,10 +2,9 @@ using System.Collections.Generic;
 
 namespace PKHeX.Core;
 
-public sealed class EvolutionReverseSpecies : IEvolutionReverse
+public sealed class EvolutionReverseSpecies(EvolutionMethod[][] Entries, IPersonalTable Personal) : IEvolutionReverse
 {
-    public EvolutionReverseLookup Lineage { get; }
-    public EvolutionReverseSpecies(EvolutionMethod[][] entries, IPersonalTable t) => Lineage = GetLineage(t, entries);
+    public EvolutionReverseLookup Lineage { get; } = GetLineage(Personal, Entries);
     public ref readonly EvolutionNode GetReverse(ushort species, byte form) => ref Lineage[species, form];
 
     private static EvolutionReverseLookup GetLineage(IPersonalTable t, EvolutionMethod[][] entries)
@@ -48,7 +47,7 @@ public sealed class EvolutionReverseSpecies : IEvolutionReverse
         yield return (s.Species, s.Form);
     }
 
-    public bool TryDevolve(ISpeciesForm head, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result)
+    public bool TryDevolve<T>(T head, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result) where T : ISpeciesForm
     {
         ref readonly var node = ref Lineage[head.Species, head.Form];
         return node.TryDevolve(pk, currentMaxLevel, levelMin, skipChecks, out result);

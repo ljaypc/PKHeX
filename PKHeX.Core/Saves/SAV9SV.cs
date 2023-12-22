@@ -14,10 +14,11 @@ public sealed class SAV9SV : SaveFile, ISaveBlock9Main, ISCBlockArray, ISaveFile
 
     public SAV9SV(byte[] data) : this(SwishCrypto.Decrypt(data)) { }
 
-    private SAV9SV(IReadOnlyList<SCBlock> blocks) : base(Array.Empty<byte>())
+    private SAV9SV(IReadOnlyList<SCBlock> blocks) : base([])
     {
         AllBlocks = blocks;
         Blocks = new SaveBlockAccessor9SV(this);
+        SaveRevision = Blocks.HasBlock(SaveBlockAccessor9SV.KBlueberryPoints) ? 2 : RaidKitakami.Data.Length != 0 ? 1 : 0;
         Initialize();
     }
 
@@ -25,6 +26,7 @@ public sealed class SAV9SV : SaveFile, ISaveBlock9Main, ISCBlockArray, ISaveFile
     {
         AllBlocks = Meta9.GetBlankDataSV();
         Blocks = new SaveBlockAccessor9SV(this);
+        SaveRevision = Meta9.BlankRevision;
         Initialize();
         ClearBoxes();
     }
@@ -40,11 +42,13 @@ public sealed class SAV9SV : SaveFile, ISaveBlock9Main, ISCBlockArray, ISaveFile
         State.Edited = true;
     }
 
-    public int SaveRevision => 0; // No DLC (yet?)
+    public int SaveRevision { get; }
 
     public string SaveRevisionString => SaveRevision switch
     {
         0 => "-Base", // Vanilla
+        1 => "-TM", // Teal Mask
+        2 => "-ID", // Indigo Disk
         _ => throw new ArgumentOutOfRangeException(nameof(SaveRevision)),
     };
 
@@ -74,9 +78,12 @@ public sealed class SAV9SV : SaveFile, ISaveBlock9Main, ISCBlockArray, ISaveFile
     public Epoch1970Value LastSaved => Blocks.LastSaved;
     public PlayerFashion9 PlayerFashion => Blocks.PlayerFashion;
     public PlayerAppearance9 PlayerAppearance => Blocks.PlayerAppearance;
-    public RaidSpawnList9 Raid => Blocks.Raid;
+    public RaidSpawnList9 RaidPaldea => Blocks.RaidPaldea;
+    public RaidSpawnList9 RaidKitakami => Blocks.RaidKitakami;
+    public RaidSpawnList9 RaidBlueberry => Blocks.RaidBlueberry;
     public RaidSevenStar9 RaidSevenStar => Blocks.RaidSevenStar;
     public Epoch1900Value EnrollmentDate => Blocks.EnrollmentDate;
+    public BlueberryQuestRecord9 BlueberryQuestRecord => Blocks.BlueberryQuestRecord;
     #endregion
 
     protected override SAV9SV CloneInternal()
@@ -87,12 +94,13 @@ public sealed class SAV9SV : SaveFile, ISaveBlock9Main, ISCBlockArray, ISaveFile
         return new(blockCopy);
     }
 
-    public override ushort MaxMoveID => Legal.MaxMoveID_9;
-    public override ushort MaxSpeciesID => Legal.MaxSpeciesID_9;
-    public override int MaxItemID => Legal.MaxItemID_9;
+    private ushort m_spec, m_item, m_move, m_abil;
     public override int MaxBallID => Legal.MaxBallID_9;
     public override int MaxGameID => Legal.MaxGameID_HOME;
-    public override int MaxAbilityID => Legal.MaxAbilityID_9;
+    public override ushort MaxMoveID => m_move;
+    public override ushort MaxSpeciesID => m_spec;
+    public override int MaxItemID => m_item;
+    public override int MaxAbilityID => m_abil;
 
     private void Initialize()
     {
@@ -100,6 +108,33 @@ public sealed class SAV9SV : SaveFile, ISaveBlock9Main, ISCBlockArray, ISaveFile
         Party = 0;
         PokeDex = 0;
         TeamIndexes.LoadBattleTeams();
+
+        int rev = SaveRevision;
+        if (rev == 0)
+        {
+            m_move = Legal.MaxMoveID_9_T0;
+            m_spec = Legal.MaxSpeciesID_9_T0;
+            m_item = Legal.MaxItemID_9_T0;
+            m_abil = Legal.MaxAbilityID_9_T0;
+        }
+        else if (rev == 1)
+        {
+            m_move = Legal.MaxMoveID_9_T1;
+            m_spec = Legal.MaxSpeciesID_9_T1;
+            m_item = Legal.MaxItemID_9_T1;
+            m_abil = Legal.MaxAbilityID_9_T1;
+        }
+        else if (rev == 2)
+        {
+            m_move = Legal.MaxMoveID_9_T2;
+            m_spec = Legal.MaxSpeciesID_9_T2;
+            m_item = Legal.MaxItemID_9_T2;
+            m_abil = Legal.MaxAbilityID_9_T2;
+        }
+        else
+        {
+            throw new ArgumentOutOfRangeException(nameof(SaveRevision));
+        }
     }
 
     public override IReadOnlyList<string> PKMExtensions => Array.FindAll(PKM.Extensions, f =>
@@ -116,7 +151,7 @@ public sealed class SAV9SV : SaveFile, ISaveBlock9Main, ISCBlockArray, ISaveFile
     public override Type PKMType => typeof(PK9);
 
     public override int BoxCount => BoxLayout9.BoxCount;
-    public override int MaxEV => 252;
+    public override int MaxEV => EffortValues.Max252;
     public override int Generation => 9;
     public override EntityContext Context => EntityContext.Gen9;
     public override int MaxStringLengthOT => 12;
@@ -145,6 +180,7 @@ public sealed class SAV9SV : SaveFile, ISaveBlock9Main, ISCBlockArray, ISaveFile
     public override string OT { get => MyStatus.OT; set => MyStatus.OT = value; }
     public override uint Money { get => (uint)Blocks.GetBlockValue(SaveBlockAccessor9SV.KMoney); set => Blocks.SetBlockValue(SaveBlockAccessor9SV.KMoney, value); }
     public uint LeaguePoints { get => (uint)Blocks.GetBlockValue(SaveBlockAccessor9SV.KLeaguePoints); set => Blocks.SetBlockValue(SaveBlockAccessor9SV.KLeaguePoints, value); }
+    public uint BlueberryPoints { get => (uint)Blocks.GetBlockValue(SaveBlockAccessor9SV.KBlueberryPoints); set => Blocks.SetBlockValueSafe(SaveBlockAccessor9SV.KBlueberryPoints, value); }
 
     public override int PlayedHours { get => Played.PlayedHours; set => Played.PlayedHours = value; }
     public override int PlayedMinutes { get => Played.PlayedMinutes; set => Played.PlayedMinutes = value; }
@@ -164,8 +200,8 @@ public sealed class SAV9SV : SaveFile, ISaveBlock9Main, ISCBlockArray, ISaveFile
     {
         PK9 pk9 = (PK9)pk;
         // Apply to this Save File
-        DateTime Date = DateTime.Now;
-        pk9.Trade(this, Date.Day, Date.Month, Date.Year);
+        var now = EncounterDate.GetDateSwitch();
+        pk9.Trade(this, now.Day, now.Month, now.Year);
 
         if (FormArgumentUtil.IsFormArgumentTypeDatePair(pk9.Species, pk9.Form))
         {
@@ -184,7 +220,7 @@ public sealed class SAV9SV : SaveFile, ISaveBlock9Main, ISCBlockArray, ISaveFile
         return pk.Species switch
         {
             (int)Species.Furfrou => 5u, // Furfrou
-            (int)Species.Hoopa => 3u, // Hoopa
+            // Hoopa no longer sets Form Argument for Unbound form. Let it set 0.
             _ => 0u,
         };
     }
@@ -250,6 +286,11 @@ public sealed class SAV9SV : SaveFile, ISaveBlock9Main, ISCBlockArray, ISaveFile
     public float X { get => ReadSingleLittleEndian(Coordinates); set => WriteSingleLittleEndian(Coordinates, value); }
     public float Y { get => ReadSingleLittleEndian(Coordinates[4..]); set => WriteSingleLittleEndian(Coordinates[4..], value); }
     public float Z { get => ReadSingleLittleEndian(Coordinates[8..]); set => WriteSingleLittleEndian(Coordinates[8..], value); }
+    public Span<byte> PlayerRotation => Blocks.GetBlock(SaveBlockAccessor9SV.KPlayerRotation).Data;
+    public float RX { get => ReadSingleLittleEndian(PlayerRotation); set => WriteSingleLittleEndian(PlayerRotation, value); }
+    public float RY { get => ReadSingleLittleEndian(PlayerRotation[4..]); set => WriteSingleLittleEndian(PlayerRotation[4..], value); }
+    public float RZ { get => ReadSingleLittleEndian(PlayerRotation[8..]); set => WriteSingleLittleEndian(PlayerRotation[8..], value); }
+    public float RW { get => ReadSingleLittleEndian(PlayerRotation[12..]); set => WriteSingleLittleEndian(PlayerRotation[12..], value); }
 
     public void SetCoordinates(float x, float y, float z)
     {
@@ -260,6 +301,18 @@ public sealed class SAV9SV : SaveFile, ISaveBlock9Main, ISCBlockArray, ISaveFile
         X = x;
         Y = y;
         Z = z;
+    }
+
+    public void SetPlayerRotation(float rx, float ry, float rz, float rw)
+    {
+        // Only set coordinates if epsilon is different enough
+        const float epsilon = 0.0001f;
+        if (Math.Abs(RX - rx) < epsilon && Math.Abs(RY - ry) < epsilon && Math.Abs(RZ - rz) < epsilon && Math.Abs(RW - rw) < epsilon)
+            return;
+        RX = rx;
+        RY = ry;
+        RZ = rz;
+        RW = rw;
     }
 
     public override int GetBoxWallpaper(int box)
@@ -297,13 +350,13 @@ public sealed class SAV9SV : SaveFile, ISaveBlock9Main, ISCBlockArray, ISaveFile
             }
         }
 
-        var blocks = new[]
-        {
+        string[] blocks =
+        [
             "WEVT_SUB_014_EVENT_STATE_UTHUWA",
             "WEVT_SUB_015_EVENT_STATE_TSURUGI",
             "WEVT_SUB_016_EVENT_STATE_MOKKAN",
             "WEVT_SUB_017_EVENT_STATE_MAGATAMA",
-        };
+        ];
 
         foreach (var block in blocks)
             Accessor.GetBlock(block).SetValue(1); // lift seals from each shrine
@@ -317,12 +370,53 @@ public sealed class SAV9SV : SaveFile, ISaveBlock9Main, ISCBlockArray, ISaveFile
 
     public void UnlockAllTMRecipes()
     {
-        for (int i = 1; i <= 171; i++)
+        for (int i = 1; i <= 229; i++)
         {
             var flag = $"FSYS_UI_WAZA_MACHINE_RELEASE_{i:000}";
             var hash = (uint)FnvHash.HashFnv1a_64(flag);
-            var block = Accessor.GetBlock(hash);
-            block.ChangeBooleanType(SCTypeCode.Bool2);
+            if (Accessor.TryGetBlock(hash, out var block))
+                block.ChangeBooleanType(SCTypeCode.Bool2);
+        }
+    }
+
+    public void ActivateSnacksworthLegendaries()
+    {
+        for (int i = 13; i <= 37; i++)
+        {
+            var flag = $"WEVT_S2_SUB_{i:000}_STATE";
+            var hash = (uint)FnvHash.HashFnv1a_64(flag);
+            if (Accessor.TryGetBlock(hash, out var block))
+                block.SetValue(1); // appeared, not captured
+        }
+    }
+
+    public void UnlockAllCoaches()
+    {
+        string[] blocks =
+        [
+            "FSYS_CLUB_HUD_COACH_BOTAN",
+            "FSYS_CLUB_HUD_COACH_CHAMP_HAGANE",
+            "FSYS_CLUB_HUD_COACH_CHAMP_JIMEN",
+            "FSYS_CLUB_HUD_COACH_CHAMP_TOP",
+            "FSYS_CLUB_HUD_COACH_FRIEND",
+            "FSYS_CLUB_HUD_COACH_RIVAL",
+            "FSYS_CLUB_HUD_COACH_TEACHER_ART",
+            "FSYS_CLUB_HUD_COACH_TEACHER_ATHLETIC",
+            "FSYS_CLUB_HUD_COACH_TEACHER_BIOLOGY",
+            "FSYS_CLUB_HUD_COACH_TEACHER_HEAD",
+            "FSYS_CLUB_HUD_COACH_TEACHER_HEALTH",
+            "FSYS_CLUB_HUD_COACH_TEACHER_HISTORY",
+            "FSYS_CLUB_HUD_COACH_TEACHER_HOME",
+            "FSYS_CLUB_HUD_COACH_TEACHER_LANGUAGE",
+            "FSYS_CLUB_HUD_COACH_TEACHER_MATH",
+        ];
+
+        // extra safety
+        foreach (var block in blocks)
+        {
+            var hash = (uint)FnvHash.HashFnv1a_64(block);
+            if (Accessor.TryGetBlock(hash, out var flag))
+                flag.ChangeBooleanType(SCTypeCode.Bool2);
         }
     }
 }

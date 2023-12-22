@@ -8,12 +8,12 @@ namespace PKHeX.Core;
 public sealed class PK7 : G6PKM, IRibbonSetEvent3, IRibbonSetEvent4, IRibbonSetCommon3, IRibbonSetCommon4, IRibbonSetCommon6, IRibbonSetMemory6, IRibbonSetCommon7, IRibbonSetRibbons,
     IContestStats, IHyperTrain, IGeoTrack, ISuperTrain, IFormArgument, ITrainerMemories, IAffection, IPokerusStatus
 {
-    public override ReadOnlySpan<ushort> ExtraBytes => new ushort[]
-    {
+    public override ReadOnlySpan<ushort> ExtraBytes =>
+    [
         0x2A, // Old Marking Value (PelagoEventStatus)
         // 0x36, 0x37, // Unused Ribbons
         0x58, 0x59, 0x73, 0x90, 0x91, 0x9E, 0x9F, 0xA0, 0xA1, 0xA7, 0xAA, 0xAB, 0xAC, 0xAD, 0xC8, 0xC9, 0xD7, 0xE4, 0xE5, 0xE6, 0xE7,
-    };
+    ];
 
     public override EntityContext Context => EntityContext.Gen7;
     public override PersonalInfo7 PersonalInfo => PersonalTable.USUM.GetFormEntry(Species, Form);
@@ -241,8 +241,12 @@ public sealed class PK7 : G6PKM, IRibbonSetEvent3, IRibbonSetEvent4, IRibbonSetC
         get => StringConverter7.GetString(Nickname_Trash);
         set
         {
+            // For Pokémon with no nickname, and match their Chinese species name, we need to use the private codepoint range instead of unicode.
+            // Can't use the stored language as it might have been traded & evolved -> mismatch; Gen8+ will match the origin language, not Gen7 :(
             if (!IsNicknamed)
             {
+                // Detect the language of the species name.
+                // If the species name is the same for Traditional and Simplified Chinese, we prefer the saved language.
                 int lang = SpeciesName.GetSpeciesNameLanguage(Species, Language, value, 7);
                 if (lang is (int)LanguageID.ChineseS or (int)LanguageID.ChineseT)
                 {
@@ -414,7 +418,8 @@ public sealed class PK7 : G6PKM, IRibbonSetEvent3, IRibbonSetEvent4, IRibbonSetC
     public override int Stat_SPD { get => ReadUInt16LittleEndian(Data.AsSpan(0xFC)); set => WriteUInt16LittleEndian(Data.AsSpan(0xFC), (ushort)value); }
     #endregion
 
-    public int SuperTrainingMedalCount(int maxCount = 30) => BitOperations.PopCount(SuperTrainBitFlags >> 2);
+    private const int MedalCount = 30;
+    public int SuperTrainingMedalCount(int lowBitCount = MedalCount) => BitOperations.PopCount((SuperTrainBitFlags >> 2) & (uint.MaxValue >> (MedalCount - lowBitCount)));
 
     public bool IsUntradedEvent6 => Geo1_Country == 0 && Geo1_Region == 0 && Met_Location / 10000 == 4 && Gen6;
 
@@ -457,8 +462,8 @@ public sealed class PK7 : G6PKM, IRibbonSetEvent3, IRibbonSetEvent4, IRibbonSetC
 
         if (Generation < 7) // must be transferred via bank, and must have memories
         {
-            this.SetTradeMemoryHT6(true); // oh no, memories on gen7 pk
-            // georegions cleared on 6->7, no need to set
+            this.SetTradeMemoryHT6(true); // oh no, memories on Gen7 pk
+            // geolocations cleared on 6->7, no need to set
         }
     }
 
@@ -497,6 +502,44 @@ public sealed class PK7 : G6PKM, IRibbonSetEvent3, IRibbonSetEvent4, IRibbonSetC
     public override int MaxItemID => Legal.MaxItemID_7_USUM;
     public override int MaxBallID => Legal.MaxBallID_7;
     public override int MaxGameID => Legal.MaxGameID_7;
+
+    internal void SetTransferLocale(int lang)
+    {
+        this.SetTradeMemoryHT6(bank: true); // oh no, memories on Gen7 pk
+        RecentTrainerCache.SetConsoleRegionData3DS(this);
+        RecentTrainerCache.SetFirstCountryRegion(this);
+        if (lang == 1 && Country != 1) // Japan Only
+        {
+            ConsoleRegion = 1;
+            Country = 1;
+            Region = 0;
+        }
+    }
+
+    internal void SetTransferIVs(int flawless, Random rnd)
+    {
+        Span<int> finalIVs = stackalloc int[6];
+        for (var i = 0; i < finalIVs.Length; i++)
+            finalIVs[i] = rnd.Next(32);
+        for (var i = 0; i < flawless; i++)
+            finalIVs[i] = 31;
+        rnd.Shuffle(finalIVs);
+        SetIVs(finalIVs);
+    }
+
+    internal void SetTransferPID(bool isShiny)
+    {
+        switch (isShiny ? Shiny.Always : Shiny.Never)
+        {
+            case Shiny.Always when !IsShiny: // Force Square
+                var low = PID & 0xFFFF;
+                PID = (low ^ TID16 ^ 0u) << 16 | low;
+                break;
+            case Shiny.Never when IsShiny: // Force Not Shiny
+                PID ^= 0x1000_0000;
+                break;
+        }
+    }
 }
 
 public enum ResortEventState : byte

@@ -45,7 +45,7 @@ public static class EvolutionChain
     private static EvolutionHistory EvolutionChainsSearch(PKM pk, EvolutionOrigin enc, EntityContext context, ushort encSpecies, Span<EvoCriteria> chain)
     {
         var history = new EvolutionHistory();
-        var length = GetOriginChain(chain, pk, enc, encSpecies, false);
+        var length = GetOriginChain(chain, pk, enc, encSpecies, enc.IsDiscardRequired(pk.Format));
         if (length == 0)
             return history;
         chain = chain[..length];
@@ -55,11 +55,12 @@ public static class EvolutionChain
             EvolutionUtil.ConditionBaseChainForward(chain, encSpecies);
         if (context == EntityContext.Gen2)
         {
+            // Handle the evolution case for Gen2->Gen1
             EvolutionGroup2.Instance.Evolve(chain, pk, enc, history);
             EvolutionGroup1.Instance.Evolve(chain, pk, enc, history);
-            if (pk.Format > 2)
+            if (pk.Format > 2) // Skip forward to Gen7
                 context = EntityContext.Gen7;
-            else
+            else // no more possible contexts; done.
                 return history;
         }
 
@@ -87,7 +88,7 @@ public static class EvolutionChain
         Span<EvoCriteria> result = stackalloc EvoCriteria[EvolutionTree.MaxEvolutions];
         int count = GetOriginChain(result, pk, enc, encSpecies, discard);
         if (count == 0)
-            return Array.Empty<EvoCriteria>();
+            return [];
 
         var chain = result[..count];
         return chain.ToArray();
@@ -133,7 +134,7 @@ public static class EvolutionChain
         }
 
         if (discard)
-            group.DiscardForOrigin(result, pk);
+            group.DiscardForOrigin(result, pk, enc);
         if (encSpecies != 0)
             return EvolutionUtil.IndexOf(result, encSpecies) + 1;
         return GetCount(result);

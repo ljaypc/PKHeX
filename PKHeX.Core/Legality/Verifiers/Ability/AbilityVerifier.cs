@@ -218,7 +218,7 @@ public sealed class AbilityVerifier : Verifier
         // Gen3 origin... a lot of edge cases to check.
         var pk = data.Entity;
         var format = pk.Format;
-        // CXD pokemon can have any ability without matching PID
+        // CXD Pokémon can have any ability without matching PID
         if (format == 3)
         {
             if (pk.Version == (int)GameVersion.CXD)
@@ -235,7 +235,7 @@ public sealed class AbilityVerifier : Verifier
         if (g3.Length == 0)
             return AbilityState.MustMatch;
 
-        // Fall through when gen3 pk transferred to gen4/5
+        // Fall through when Gen3 pk transferred to Gen4/5
         var maxGen3Species = g3[0].Species;
         return VerifyAbilityGen3Transfer(data, abilities, maxGen3Species);
     }
@@ -341,7 +341,7 @@ public sealed class AbilityVerifier : Verifier
         // Eggs and Encounter Slots are not yet checked for Hidden Ability potential.
         return enc switch
         {
-            EncounterEgg e when pk.AbilityNumber == 4 && AbilityBreedLegality.BanHidden5.Contains(e.Species) => GetInvalid(LAbilityHiddenUnavailable),
+            EncounterEgg e when pk.AbilityNumber == 4 && !AbilityBreedLegality.IsHiddenPossible5(e.Species) => GetInvalid(LAbilityHiddenUnavailable),
             _ => CheckMatch(data.Entity, abilities, 5, pk.Format == 5 ? AbilityState.MustMatch : AbilityState.CanMismatch, enc),
         };
     }
@@ -352,10 +352,9 @@ public sealed class AbilityVerifier : Verifier
         if (pk.AbilityNumber != 4)
             return VALID;
 
-        // Eggs and Encounter Slots are not yet checked for Hidden Ability potential.
         return enc switch
         {
-            EncounterEgg egg when AbilityBreedLegality.BanHidden6.Contains((ushort)(egg.Species | (egg.Form << 11))) => GetInvalid(LAbilityHiddenUnavailable),
+            EncounterEgg egg when !AbilityBreedLegality.IsHiddenPossible6(egg.Species, egg.Form) => GetInvalid(LAbilityHiddenUnavailable),
             _ => VALID,
         };
     }
@@ -368,7 +367,7 @@ public sealed class AbilityVerifier : Verifier
 
         return enc switch
         {
-            EncounterEgg egg when AbilityBreedLegality.BanHidden7.Contains((ushort)(egg.Species | (egg.Form << 11))) => GetInvalid(LAbilityHiddenUnavailable),
+            EncounterEgg egg when !AbilityBreedLegality.IsHiddenPossible7(egg.Species, egg.Form) => GetInvalid(LAbilityHiddenUnavailable),
             _ => VALID,
         };
     }
@@ -381,7 +380,7 @@ public sealed class AbilityVerifier : Verifier
 
         return enc switch
         {
-            EncounterEgg egg when AbilityBreedLegality.BanHidden8b.Contains((ushort)(egg.Species | (egg.Form << 11))) => GetInvalid(LAbilityHiddenUnavailable),
+            EncounterEgg egg when !AbilityBreedLegality.IsHiddenPossibleHOME(egg.Species) => GetInvalid(LAbilityHiddenUnavailable),
             _ => VALID,
         };
     }
@@ -413,7 +412,7 @@ public sealed class AbilityVerifier : Verifier
             {
                 // Must not have the Ability bit flag set.
                 // Shadow encounters set a random ability index; don't bother checking if it's a re-battle for ability bit flipping.
-                if (abit && enc is not EncounterStaticShadow)
+                if (abit && enc is not IShadow3)
                     return GetInvalid(LAbilityMismatchFlag, CheckIdentifier.PID);
             }
             else
@@ -421,7 +420,7 @@ public sealed class AbilityVerifier : Verifier
                 // Gen3 mainline origin sets the Ability index based on the PID, but only if it has two abilities.
                 // Version value check isn't factually correct, but there are no C/XD gifts with (Version!=15) that have two abilities.
                 // Pikachu, Celebi, Ho-Oh
-                if (pk.Version != (int)GameVersion.CXD && abit != ((pk.PID & 1) == 1))
+                if (pk.Version != (int)GameVersion.CXD && abit != ((pk.EncryptionConstant & 1) == 1))
                     return GetInvalid(LAbilityMismatchPID, CheckIdentifier.PID);
             }
         }

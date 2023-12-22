@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using static System.Buffers.Binary.BinaryPrimitives;
 
 namespace PKHeX.Core;
@@ -22,7 +23,7 @@ public abstract class SAV5 : SaveFile, ISaveBlock5BW, IEventFlag37
     public override Type PKMType => typeof(PK5);
 
     public override int BoxCount => 24;
-    public override int MaxEV => 255;
+    public override int MaxEV => EffortValues.Max255;
     public override int Generation => 5;
     public override EntityContext Context => EntityContext.Gen5;
     public override int MaxStringLengthOT => 7;
@@ -39,7 +40,7 @@ public abstract class SAV5 : SaveFile, ISaveBlock5BW, IEventFlag37
     public override int MaxBallID => Legal.MaxBallID_5;
     public override int MaxGameID => Legal.MaxGameID_5; // B2
 
-    protected SAV5(int size) : base(size)
+    protected SAV5([ConstantExpected] int size) : base(size)
     {
         Initialize();
         ClearBoxes();
@@ -106,7 +107,7 @@ public abstract class SAV5 : SaveFile, ISaveBlock5BW, IEventFlag37
 
     public bool BattleBoxLocked
     {
-        get => Data[BattleBoxOffset + 0x358] != 0; // wifi/live
+        get => Data[BattleBoxOffset + 0x358] != 0; // Wi-Fi/Live Tournament Active
         set => Data[BattleBoxOffset + 0x358] = value ? (byte)1 : (byte)0;
     }
 
@@ -114,8 +115,8 @@ public abstract class SAV5 : SaveFile, ISaveBlock5BW, IEventFlag37
     {
         var pk5 = (PK5)pk;
         // Apply to this Save File
-        DateTime Date = DateTime.Now;
-        if (pk5.Trade(OT, ID32, Gender, Date.Day, Date.Month, Date.Year))
+        var now = EncounterDate.GetDateNDS();
+        if (pk5.Trade(OT, ID32, Gender, now.Day, now.Month, now.Year))
             pk.RefreshChecksum();
     }
 
@@ -175,7 +176,7 @@ public abstract class SAV5 : SaveFile, ISaveBlock5BW, IEventFlag37
         set => Data[CGearSkinInfoOffset + 2] = Data[PlayerData.Offset + (this is SAV5B2W2 ? 0x6C : 0x54)] = value ? (byte)1 : (byte)0;
     }
 
-    private static ReadOnlySpan<byte> DLCFooter => new byte[] { 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x14, 0x27, 0x00, 0x00, 0x27, 0x35, 0x05, 0x31, 0x00, 0x00 };
+    private static ReadOnlySpan<byte> DLCFooter => [ 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x14, 0x27, 0x00, 0x00, 0x27, 0x35, 0x05, 0x31, 0x00, 0x00 ];
 
     public byte[] CGearSkinData
     {
@@ -222,6 +223,7 @@ public abstract class SAV5 : SaveFile, ISaveBlock5BW, IEventFlag37
     public abstract Zukan5 Zukan { get; }
     public abstract Misc5 Misc { get; }
     public abstract MysteryBlock5 Mystery { get; }
+    public abstract Chatter5 Chatter { get; }
     public abstract Daycare5 Daycare { get; }
     public abstract BoxLayout5 BoxLayout { get; }
     public abstract PlayerData5 PlayerData { get; }

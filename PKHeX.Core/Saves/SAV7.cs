@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using static System.Buffers.Binary.BinaryPrimitives;
 
 namespace PKHeX.Core;
@@ -19,17 +20,17 @@ public abstract class SAV7 : SAV_BEEF, ITrainerStatRecord, ISaveBlock7Main, IReg
         return gen <= 7 && f[1] != 'b'; // ignore PB7
     });
 
-    protected SAV7(byte[] data, int biOffset) : base(data, biOffset)
+    protected SAV7(byte[] data, [ConstantExpected] int biOffset) : base(data, biOffset)
     {
     }
 
-    protected SAV7(int size, int biOffset) : base(size, biOffset)
+    protected SAV7([ConstantExpected] int size, [ConstantExpected] int biOffset) : base(size, biOffset)
     {
     }
 
     protected void ReloadBattleTeams()
     {
-        var demo = this is SAV7SM && Data.AsSpan(BoxLayout.Offset, 0x4C4).IndexOfAnyExcept<byte>(0) == -1; // up to Battle Box values
+        var demo = this is SAV7SM && !Data.AsSpan(BoxLayout.Offset, 0x4C4).ContainsAnyExcept<byte>(0); // up to Battle Box values
         if (demo || !State.Exportable)
         {
             BoxLayout.ClearBattleTeams();
@@ -70,7 +71,7 @@ public abstract class SAV7 : SAV_BEEF, ITrainerStatRecord, ISaveBlock7Main, IReg
     public override Type PKMType => typeof(PK7);
 
     public override int BoxCount => 32;
-    public override int MaxEV => 252;
+    public override int MaxEV => EffortValues.Max252;
     public override int Generation => 7;
     public override EntityContext Context => EntityContext.Gen7;
     protected override int GiftCountMax => 48;
@@ -175,8 +176,8 @@ public abstract class SAV7 : SAV_BEEF, ITrainerStatRecord, ISaveBlock7Main, IReg
         PK7 pk7 = (PK7)pk;
         // Apply to this Save File
         int CT = pk7.CurrentHandler;
-        DateTime Date = DateTime.Now;
-        pk7.Trade(this, Date.Day, Date.Month, Date.Year);
+        var now = EncounterDate.GetDate3DS();
+        pk7.Trade(this, now.Day, now.Month, now.Year);
         if (CT != pk7.CurrentHandler) // Logic updated Friendship
         {
             // Copy over the Friendship Value only under certain circumstances
@@ -210,7 +211,7 @@ public abstract class SAV7 : SAV_BEEF, ITrainerStatRecord, ISaveBlock7Main, IReg
         if (pk.Form == 0)
             return 0;
         // Gen7 allows forms to be stored in the box with the current duration & form
-        // Just cap out the form duration anyways
+        // Just cap out the form duration anyway
         return pk.Species switch
         {
             (int)Species.Furfrou => 5u, // Furfrou

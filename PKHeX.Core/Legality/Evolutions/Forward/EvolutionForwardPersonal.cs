@@ -6,17 +6,8 @@ namespace PKHeX.Core;
 /// <summary>
 /// Provides forward evolution pathways with reliance on personal table data for form branched evolutions.
 /// </summary>
-public sealed class EvolutionForwardPersonal : IEvolutionForward
+public sealed class EvolutionForwardPersonal(EvolutionMethod[][] Entries, IPersonalTable Personal) : IEvolutionForward
 {
-    private readonly IPersonalTable Personal;
-    private readonly EvolutionMethod[][] Entries;
-
-    public EvolutionForwardPersonal(EvolutionMethod[][] entries, IPersonalTable personal)
-    {
-        Entries = entries;
-        Personal = personal;
-    }
-
     public ReadOnlyMemory<EvolutionMethod> GetForward(ushort species, byte form)
     {
         int index = Personal.GetFormIndex(species, form);
@@ -45,7 +36,7 @@ public sealed class EvolutionForwardPersonal : IEvolutionForward
         }
     }
 
-    public bool TryEvolve(ISpeciesForm head, ISpeciesForm next, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result)
+    public bool TryEvolve<T>(T head, ISpeciesForm next, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result) where T : ISpeciesForm
     {
         var methods = GetForward(head.Species, head.Form);
         foreach (var method in methods.Span)

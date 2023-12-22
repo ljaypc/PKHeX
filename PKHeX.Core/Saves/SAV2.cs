@@ -17,6 +17,7 @@ public sealed class SAV2 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
     public string SaveRevisionString => (Japanese ? "J" : !Korean ? "U" : "K") + (IsVirtualConsole ? "VC" : "GB");
     public bool Japanese { get; }
     public bool Korean { get; }
+    public override int Language => Japanese ? 1 : Korean ? (int)LanguageID.Korean : -1;
 
     public override PersonalTable2 Personal { get; }
     public override ReadOnlySpan<ushort> HeldItems => Legal.HeldItems_GSC;
@@ -218,14 +219,14 @@ public sealed class SAV2 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
         {
             // Calculate oddball checksum
             ushort sum = 0;
-            Span<(ushort, ushort)> offsetpairs = stackalloc (ushort,ushort)[]
-            {
+            Span<(ushort, ushort)> offsetpairs =
+            [
                 (0x106B, 0x1533),
                 (0x1534, 0x1A12),
                 (0x1A13, 0x1C38),
                 (0x3DD8, 0x3F79),
                 (0x7E39, 0x7E6A),
-            };
+            ];
             foreach (var p in offsetpairs)
             {
                 for (int i = p.Item1; i < p.Item2; i++)
@@ -279,7 +280,7 @@ public sealed class SAV2 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
     public int EventFlagCount => 2000;
 
     public override int BoxCount => Japanese ? 9 : 14;
-    public override int MaxEV => 65535;
+    public override int MaxEV => EffortValues.Max12;
     public override int MaxIV => 15;
     public override int Generation => 2;
     public override EntityContext Context => EntityContext.Gen2;
@@ -506,19 +507,61 @@ public sealed class SAV2 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
         }
     }
 
+    public byte MysteryGiftItem
+    {
+        get
+        {
+            int ofs = Offsets.MysteryGiftItem;
+            if (ofs == -1)
+                return 0;
+            if (GetEventFlag(1809))
+                return 0;
+            return Data[ofs];
+        }
+        set
+        {
+            int ofs = Offsets.MysteryGiftItem;
+            if (ofs == -1)
+                return;
+
+            SetEventFlag(1809, value == 0);
+            Data[ofs] = value;
+        }
+    }
+
+    public bool MysteryGiftIsUnlocked
+    {
+        get
+        {
+            int ofs = Offsets.MysteryGiftIsUnlocked;
+            if (ofs == -1)
+                return false;
+            return Data[ofs] == 0x00;
+        }
+        set
+        {
+            int ofs = Offsets.MysteryGiftIsUnlocked;
+            if (ofs == -1)
+                return;
+
+            Data[ofs] = (byte)(value ? 0x00 : 0xFF);
+            Data[ofs + 2] = Data[ofs];
+        }
+    }
+
     public override IReadOnlyList<InventoryPouch> Inventory
     {
         get
         {
             var info = Version == GameVersion.C ? ItemStorage2.InstanceC : ItemStorage2.InstanceGS;
             InventoryPouch[] pouch =
-            {
+            [
                 new InventoryPouchGB(InventoryType.TMHMs, info, 99, Offsets.PouchTMHM, 57),
                 new InventoryPouchGB(InventoryType.Items, info, 99, Offsets.PouchItem, 20),
                 new InventoryPouchGB(InventoryType.KeyItems, info, 99, Offsets.PouchKey, 26),
                 new InventoryPouchGB(InventoryType.Balls, info, 99, Offsets.PouchBall, 12),
                 new InventoryPouchGB(InventoryType.PCItems, info, 99, Offsets.PouchPC, 50),
-            };
+            ];
             return pouch.LoadAll(Data);
         }
         set => value.SaveAll(Data);
@@ -600,7 +643,7 @@ public sealed class SAV2 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
 
     private void SetUnownFormFlags()
     {
-        // Give all Unown caught to prevent a crash on pokedex view
+        // Give all Unown caught to prevent a crash on Pokédex view
         for (int i = 1; i <= 26; i++)
             Data[Offsets.PokedexSeen + 0x1F + i] = (byte)i;
         if (UnownFirstSeen == 0) // Invalid
@@ -719,16 +762,16 @@ public sealed class SAV2 : SaveFile, ILangDeviantSave, IEventFlagArray, IEventWo
 
     private ushort GetResetKey()
     {
-        var value = (TID16 >> 8) + (TID16 & 0xFF) + ((Money >> 16) & 0xFF) + ((Money >> 8) & 0xFF) + (Money & 0xFF);
-        var ot = Data.AsSpan(Offsets.Trainer1 + 2, 5);
-        var sum = 0;
-        foreach (var b in ot)
-        {
-            if (b == StringConverter12.G1TerminatorCode)
-                break;
-            sum += b;
-        }
-        return (ushort)(value + sum);
+        ushort result = 0;
+        foreach (var b in Data.AsSpan(Offsets.Money, 3))
+            result += b;
+        var tr = Data.AsSpan(Offsets.Trainer1, 7);
+        var end = tr[2..].IndexOf(StringConverter12.G1TerminatorCode);
+        if (end >= 0)
+            tr = tr[..(end + 2)];
+        foreach (var b in tr)
+            result += b;
+        return result;
     }
 
     /// <summary>

@@ -55,7 +55,7 @@ public partial class SAV_Encounters : Form
         if (hdelta != 0)
             Height += hdelta;
 
-        PKXBOXES = grid.Entries.ToArray();
+        PKXBOXES = [..grid.Entries];
 
         // Enable Scrolling when hovered over
         foreach (var slot in PKXBOXES)
@@ -127,7 +127,7 @@ public partial class SAV_Encounters : Form
     }
 
     private readonly PictureBox[] PKXBOXES;
-    private List<IEncounterInfo> Results = new();
+    private List<IEncounterInfo> Results = [];
     private int slotSelected = -1; // = null;
     private Image? slotColor;
     private const int RES_MAX = 66;
@@ -188,7 +188,7 @@ public partial class SAV_Encounters : Form
         var set = new ShowdownSet(editor);
         var criteria = EncounterCriteria.GetCriteria(set, editor.PersonalInfo);
         if (!isInChain)
-            criteria = criteria with { Gender = -1 }; // Genderless tabs and a gendered enc -> let's play safe.
+            criteria = criteria with { Gender = FixedGenderUtil.GenderRandom }; // Genderless tabs and a gendered enc -> let's play safe.
         return criteria;
     }
 
@@ -203,7 +203,7 @@ public partial class SAV_Encounters : Form
         var DS_Species = new List<ComboItem>(GameInfo.SpeciesDataSource);
         DS_Species.RemoveAt(0); DS_Species.Insert(0, Any); CB_Species.DataSource = DS_Species;
 
-        // Set the Move ComboBoxes too..
+        // Set the Move ComboBoxes too.
         var DS_Move = new List<ComboItem>(GameInfo.MoveDataSource);
         DS_Move.RemoveAt(0); DS_Move.Insert(0, Any);
         {
@@ -245,12 +245,12 @@ public partial class SAV_Encounters : Form
 
         // If nothing is specified, instead of just returning all possible encounters, just return nothing.
         if (settings is { Species: 0, Moves.Count: 0 } && Main.Settings.EncounterDb.ReturnNoneIfEmptySearch)
-            return Array.Empty<IEncounterInfo>();
+            return [];
         var pk = SAV.BlankPKM;
 
         var moves = settings.Moves.ToArray();
         var versions = settings.GetVersions(SAV);
-        var species = settings.Species == 0 ? GetFullRange(SAV.MaxSpeciesID) : new[] { settings.Species };
+        var species = settings.Species == 0 ? GetFullRange(SAV.MaxSpeciesID) : [settings.Species];
         var results = GetAllSpeciesFormEncounters(species, SAV.Personal, versions, moves, pk, token);
         if (settings.SearchEgg != null)
             results = results.Where(z => z.EggEncounter == settings.SearchEgg);
@@ -261,18 +261,20 @@ public partial class SAV_Encounters : Form
         var comparer = new ReferenceComparer<IEncounterInfo>();
         results = results.Distinct(comparer); // only distinct objects
 
+        static Func<IEncounterInfo, bool> IsPresent<TTable>(TTable pt) where TTable : IPersonalTable => z =>
+        {
+            if (pt.IsPresentInGame(z.Species, z.Form))
+                return true;
+            return z is IEncounterFormRandom { IsRandomUnspecificForm: true } && pt.IsSpeciesInGame(z.Species);
+        };
         if (Main.Settings.EncounterDb.FilterUnavailableSpecies)
         {
-            static bool IsPresentInGameSV(ISpeciesForm pk) => PersonalTable.SV.IsPresentInGame(pk.Species, pk.Form);
-            static bool IsPresentInGameSWSH(ISpeciesForm pk) => PersonalTable.SWSH.IsPresentInGame(pk.Species, pk.Form);
-            static bool IsPresentInGameBDSP(ISpeciesForm pk) => PersonalTable.BDSP.IsPresentInGame(pk.Species, pk.Form);
-            static bool IsPresentInGameLA(ISpeciesForm pk) => PersonalTable.LA.IsPresentInGame(pk.Species, pk.Form);
             results = SAV switch
             {
-                SAV9SV => results.Where(IsPresentInGameSV),
-                SAV8SWSH => results.Where(IsPresentInGameSWSH),
-                SAV8BS => results.Where(IsPresentInGameBDSP),
-                SAV8LA => results.Where(IsPresentInGameLA),
+                SAV9SV s9 => results.Where(IsPresent(s9.Personal)),
+                SAV8SWSH s8 => results.Where(IsPresent(s8.Personal)),
+                SAV8BS b8 => results.Where(IsPresent(b8.Personal)),
+                SAV8LA a8 => results.Where(IsPresent(a8.Personal)),
                 _ => results.Where(z => z.Generation <= 7),
             };
         }

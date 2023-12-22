@@ -11,7 +11,7 @@ public sealed class EvolutionGroup6 : IEvolutionGroup
 
     public IEvolutionGroup? GetNext(PKM pk, EvolutionOrigin enc) => pk.Format > Generation ? EvolutionGroup7.Instance : null;
     public IEvolutionGroup? GetPrevious(PKM pk, EvolutionOrigin enc) => enc.Generation < Generation ? EvolutionGroup5.Instance : null;
-    public void DiscardForOrigin(Span<EvoCriteria> result, PKM pk) => EvolutionUtil.Discard(result, Personal);
+    public void DiscardForOrigin(Span<EvoCriteria> result, PKM pk, EvolutionOrigin enc) => EvolutionUtil.Discard(result, Personal);
 
     public int Devolve(Span<EvoCriteria> result, PKM pk, EvolutionOrigin enc)
     {
@@ -37,7 +37,7 @@ public sealed class EvolutionGroup6 : IEvolutionGroup
             evo = evo with { Form = 0 }; // Normal
     }
 
-    public bool TryDevolve(ISpeciesForm head, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result)
+    public bool TryDevolve<T>(T head, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result) where T : ISpeciesForm
     {
         return Tree.Reverse.TryDevolve(head, pk, currentMaxLevel, levelMin, skipChecks, out result);
     }
@@ -64,7 +64,7 @@ public sealed class EvolutionGroup6 : IEvolutionGroup
         return present;
     }
 
-    public bool TryEvolve(ISpeciesForm head, ISpeciesForm next, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result)
+    public bool TryEvolve<T>(T head, ISpeciesForm next, PKM pk, byte currentMaxLevel, byte levelMin, bool skipChecks, out EvoCriteria result) where T : ISpeciesForm
     {
         return Tree.Forward.TryEvolve(head, next, pk, currentMaxLevel, levelMin, skipChecks, out result);
     }

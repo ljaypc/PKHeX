@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Text;
 using static PKHeX.Core.LegalityCheckStrings;
 using static PKHeX.Core.CheckIdentifier;
@@ -49,6 +48,9 @@ public sealed class MiscVerifier : Verifier
 
         switch (pk)
         {
+            case PK5 pk5:
+                VerifyGen5Stats(data, pk5);
+                break;
             case PK7 {ResortEventStatus: >= ResortEventState.MAX}:
                 data.AddLine(GetInvalid(LTransferBad));
                 break;
@@ -137,6 +139,21 @@ public sealed class MiscVerifier : Verifier
             data.AddLine(GetInvalid(LStatIncorrectHeightValue));
     }
 
+    private static void VerifyGen5Stats(LegalityAnalysis data, PK5 pk5)
+    {
+        var enc = data.EncounterMatch;
+        if (enc is EncounterStatic5N)
+        {
+            if (!pk5.NSparkle)
+                data.AddLine(GetInvalid(LG5SparkleRequired, Fateful));
+        }
+        else
+        {
+            if (pk5.NSparkle)
+                data.AddLine(GetInvalid(LG5SparkleInvalid, Fateful));
+        }
+    }
+
     private static bool IsHeightScaleMatchRequired(PKM pk)
     {
         if (pk is IHomeTrack { HasTracker: false })
@@ -153,13 +170,31 @@ public sealed class MiscVerifier : Verifier
             data.AddLine(GetInvalid(LStatBattleVersionInvalid));
         if (!IsObedienceLevelValid(pk9, pk9.Obedience_Level, pk9.Met_Level))
             data.AddLine(GetInvalid(LTransferObedienceLevel));
-        if (pk9.IsEgg && pk9.TeraTypeOverride != (MoveType)TeraTypeUtil.OverrideNone)
-            data.AddLine(GetInvalid(LTeraTypeIncorrect));
+        if (pk9.IsEgg)
+        {
+            if (pk9.TeraTypeOverride != (MoveType)TeraTypeUtil.OverrideNone)
+                data.AddLine(GetInvalid(LTeraTypeIncorrect));
+        }
+        else if (pk9.Species == (int)Species.Terapagos)
+        {
+            if (!TeraTypeUtil.IsValidTerapagos((byte)pk9.TeraTypeOverride))
+                data.AddLine(GetInvalid(LTeraTypeIncorrect));
+        }
+        else if (pk9.Species == (int)Species.Ogerpon)
+        {
+            if (!TeraTypeUtil.IsValidOgerpon((byte)pk9.TeraTypeOverride, pk9.Form))
+                data.AddLine(GetInvalid(LTeraTypeIncorrect));
+        }
+        else
+        {
+            if (!TeraTypeUtil.IsValid((byte)pk9.TeraTypeOriginal))
+                data.AddLine(GetInvalid(LTeraTypeIncorrect));
+        }
 
         var enc = data.EncounterOriginal;
         if (pk9 is { HeightScalar: 0, WeightScalar: 0 })
         {
-            if (enc.Context.Generation() < 9 && enc is not EncounterSlotGO && !data.Info.EvoChainsAllGens.HasVisitedPLA) // <=Gen8 rerolls height/weight, never zero.
+            if (enc.Context.Generation() < 9 && !data.Info.EvoChainsAllGens.HasVisitedPLA && enc is not IPogoSlot) // <=Gen8 rerolls height/weight, never zero.
                 data.AddLine(Get(LStatInvalidHeightWeight, Severity.Invalid, Encounter));
             else if (CheckHeightWeightOdds(enc) && ParseSettings.ZeroHeightWeight != Severity.Valid)
                 data.AddLine(Get(LStatInvalidHeightWeight, ParseSettings.ZeroHeightWeight, Encounter));
@@ -188,6 +223,39 @@ public sealed class MiscVerifier : Verifier
             if (pk9.CurrentHandler != 0 || pk9.Tracker != 0)
                 data.AddLine(GetInvalid(LTransferBad));
         }
+
+        if (!Locations9.IsAccessiblePreDLC((ushort)pk9.Met_Location))
+        {
+            if (enc is { Species: (int)Species.Larvesta, Form: 0 } and not EncounterEgg)
+                DisallowLevelUpMove(24, (ushort)Move.BugBite, pk9, data);
+            else if (enc is { Species: (int)Species.Zorua, Form: 1 } and not EncounterEgg)
+                DisallowLevelUpMove(28, (ushort)Move.Spite, pk9, data);
+            else
+                return;
+
+            // Safari and Sport are not obtainable in the base game.
+            // For the learnset restricted cases, we need to check if the ball is available too.
+            if (((BallUseLegality.WildPokeballs9PreDLC2 >> pk9.Ball) & 1) != 1)
+                data.AddLine(GetInvalid(LBallUnavailable));
+        }
+    }
+
+    private static void DisallowLevelUpMove(byte level, ushort move, PK9 pk, LegalityAnalysis data)
+    {
+        if (pk.Tracker != 0)
+            return;
+        int index = pk.GetMoveIndex(move);
+        if (index == -1)
+            return;
+
+        ref var m = ref data.Info.Moves[index];
+        if (m.Info.Method != LearnMethod.LevelUp || m.Info.Argument != level)
+            return;
+        var flagIndex = pk.Permit.RecordPermitIndexes.IndexOf(move);
+        ArgumentOutOfRangeException.ThrowIfNegative(flagIndex, nameof(move)); // Always expect it to match.
+        if (pk.GetMoveRecordFlag(flagIndex))
+            return;
+        m = new MoveResult(LearnMethod.None);
     }
 
     public static int GetTeraImportMatch(ReadOnlySpan<EvoCriteria> evos, MoveType actual, IEncounterTemplate enc)
@@ -249,7 +317,12 @@ public sealed class MiscVerifier : Verifier
             if (pk is ICaughtData2 { CaughtData: not 0 } t)
             {
                 var time = t.Met_TimeOfDay;
-                bool valid = data.EncounterOriginal is EncounterTrade2 ? time == 0 : time is 1 or 2 or 3;
+                bool valid = data.EncounterOriginal switch
+                {
+                    EncounterGift2 g2 when (!g2.EggEncounter || pk.IsEgg) => time == 0,
+                    EncounterTrade2 => time == 0,
+                    _ => time is 1 or 2 or 3,
+                };
                 if (!valid)
                     data.AddLine(new CheckResult(Severity.Invalid, Encounter, LMetDetailTimeOfDay));
             }
@@ -285,7 +358,7 @@ public sealed class MiscVerifier : Verifier
         {
             var pi = PersonalTable.RB[species];
             var (match1, match2) = pi.IsMatchType(pk1);
-            if (!match2 && ParseSettings.AllowGBCartEra)
+            if (!match2 && ParseSettings.AllowGBStadium2)
                 match2 = (species is (int)Species.Magnemite or (int)Species.Magneton) && pk1.Type2 == 9; // Steel Magnemite via Stadium2
 
             var first = match1 ? GetValid(LG1TypeMatch1) : GetInvalid(LG1Type1Fail);
@@ -319,13 +392,13 @@ public sealed class MiscVerifier : Verifier
             if (MoveInfo.IsAnyFromGeneration(2, data.Info.Moves))
                 return GetInvalid(LG1CatchRateItem);
             var e = data.EncounterMatch;
-            if (e is EncounterStatic1E {Version: GameVersion.Stadium} or EncounterTrade1)
+            if (e is EncounterGift1 {Version: GameVersion.Stadium} or EncounterTrade1)
                 return GetValid(LG1CatchRateMatchPrevious); // Encounters detected by the catch rate, cant be invalid if match this encounters
 
             ushort species = pk1.Species;
             if (GBRestrictions.IsSpeciesNotAvailableCatchRate((byte)species) && catch_rate == PersonalTable.RB[species].CatchRate)
             {
-                if (species != (int) Species.Dragonite || catch_rate != 45 || !e.Version.Contains(GameVersion.YW))
+                if (species != (int) Species.Dragonite || catch_rate != 45 || !(e.Version == GameVersion.BU || e.Version.Contains(GameVersion.YW)))
                     return GetInvalid(LG1CatchRateEvo);
             }
             if (!GBRestrictions.RateMatchesEncounter(e.Species, e.Version, catch_rate))
@@ -578,20 +651,18 @@ public sealed class MiscVerifier : Verifier
         if (pk.Species != data.EncounterMatch.Species)
             return; // evolved
 
-        if (Unfeedable.Contains(pk.Species))
+        if (IsUnfeedable(pk.Species))
             data.AddLine(GetInvalid(string.Format(LMemoryStatFullness, "0"), Encounter));
     }
 
-    private static readonly HashSet<ushort> Unfeedable = new()
-    {
-        (int)Species.Metapod,
-        (int)Species.Kakuna,
-        (int)Species.Pineco,
-        (int)Species.Silcoon,
-        (int)Species.Cascoon,
-        (int)Species.Shedinja,
-        (int)Species.Spewpa,
-    };
+    public static bool IsUnfeedable(ushort species) => species is
+        (int)Species.Metapod or
+        (int)Species.Kakuna or
+        (int)Species.Pineco or
+        (int)Species.Silcoon or
+        (int)Species.Cascoon or
+        (int)Species.Shedinja or
+        (int)Species.Spewpa;
 
     private static void VerifyBelugaStats(LegalityAnalysis data, PB7 pb7)
     {
@@ -610,10 +681,10 @@ public sealed class MiscVerifier : Verifier
             data.AddLine(GetInvalid(LStatIncorrectWeight, Encounter));
     }
 
-    private static bool IsStarterLGPE(ISpeciesForm pk) => pk.Species switch
+    private static bool IsStarterLGPE(ISpeciesForm pk) => pk switch
     {
-        (int)Species.Pikachu when pk.Form == 8 => true,
-        (int)Species.Eevee   when pk.Form == 1 => true,
+        { Species: (int)Species.Pikachu, Form: 8 } => true,
+        { Species: (int)Species.Eevee, Form: 1 } => true,
         _ => false,
     };
 
@@ -639,7 +710,7 @@ public sealed class MiscVerifier : Verifier
         bool originGMax = enc is IGigantamaxReadOnly {CanGigantamax: true};
         if (originGMax != pk8.CanGigantamax)
         {
-            bool ok = !pk8.IsEgg && pk8.CanToggleGigantamax(pk8.Species, pk8.Form, enc.Species, enc.Form);
+            bool ok = !pk8.IsEgg && Gigantamax.CanToggle(pk8.Species, pk8.Form, enc.Species, enc.Form);
             var chk = ok ? GetValid(LStatGigantamaxValid) : GetInvalid(LStatGigantamaxInvalid);
             data.AddLine(chk);
         }
@@ -736,9 +807,10 @@ public sealed class MiscVerifier : Verifier
             data.AddLine(GetInvalid(LStatNatureInvalid));
     }
 
+    private static string GetMoveName<T>(T pk, int index) where T : PKM, ITechRecord => ParseSettings.MoveStrings[pk.Permit.RecordPermitIndexes[index]];
+
     private void VerifyTechRecordSWSH<T>(LegalityAnalysis data, T pk) where T : PKM, ITechRecord
     {
-        string GetMoveName(int index) => ParseSettings.MoveStrings[pk.Permit.RecordPermitIndexes[index]];
         var evos = data.Info.EvoChainsAllGens.Gen8;
         if (evos.Length == 0)
         {
@@ -747,7 +819,7 @@ public sealed class MiscVerifier : Verifier
             {
                 if (!pk.GetMoveRecordFlag(i))
                     continue;
-                data.AddLine(GetInvalid(string.Format(LMoveSourceTR, GetMoveName(i))));
+                data.AddLine(GetInvalid(string.Format(LMoveSourceTR, GetMoveName(pk, i))));
             }
         }
         else
@@ -763,7 +835,7 @@ public sealed class MiscVerifier : Verifier
                     continue;
 
                 // Calyrex-0 can have TR flags for Calyrex-1/2 after it has force unlearned them.
-                // Re-fusing can be reacquire the move via relearner, rather than needing another TR.
+                // Re-fusing can reacquire the move via relearner, rather than needing another TR.
                 // Calyrex-0 cannot reacquire the move via relearner, even though the TR is checked off in the TR list.
                 if (pk.Species == (int)Species.Calyrex)
                 {
@@ -773,7 +845,7 @@ public sealed class MiscVerifier : Verifier
                         continue;
                 }
 
-                data.AddLine(GetInvalid(string.Format(LMoveSourceTR, GetMoveName(i))));
+                data.AddLine(GetInvalid(string.Format(LMoveSourceTR, GetMoveName(pk, i))));
             }
         }
     }
@@ -786,7 +858,6 @@ public sealed class MiscVerifier : Verifier
 
     private void VerifyTechRecordSV(LegalityAnalysis data, PK9 pk)
     {
-        string GetMoveName(int index) => ParseSettings.MoveStrings[pk.Permit.RecordPermitIndexes[index]];
         var evos = data.Info.EvoChainsAllGens.Gen9;
         if (evos.Length == 0)
         {
@@ -795,7 +866,7 @@ public sealed class MiscVerifier : Verifier
             {
                 if (!pk.GetMoveRecordFlag(i))
                     continue;
-                data.AddLine(GetInvalid(string.Format(LMoveSourceTR, GetMoveName(i))));
+                data.AddLine(GetInvalid(string.Format(LMoveSourceTR, GetMoveName(pk, i))));
             }
         }
         else
@@ -821,7 +892,7 @@ public sealed class MiscVerifier : Verifier
                     break;
                 }
                 if (!preEvoHas)
-                    data.AddLine(GetInvalid(string.Format(LMoveSourceTR, GetMoveName(i))));
+                    data.AddLine(GetInvalid(string.Format(LMoveSourceTR, GetMoveName(pk, i))));
             }
         }
     }

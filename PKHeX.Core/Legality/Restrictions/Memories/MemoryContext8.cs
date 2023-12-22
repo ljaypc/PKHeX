@@ -12,6 +12,23 @@ public sealed partial class MemoryContext8 : MemoryContext
 
     public override EntityContext Context => EntityContext.Gen8;
 
+    public static bool GetCanBeCaptured(ushort species, GameVersion version) => version switch
+    {
+        GameVersion.Any => GetCanBeCaptured(species, CaptureFlagsSW) || GetCanBeCaptured(species, CaptureFlagsSH),
+        GameVersion.SW  => GetCanBeCaptured(species, CaptureFlagsSW),
+        GameVersion.SH  => GetCanBeCaptured(species, CaptureFlagsSH),
+        _ => false,
+    };
+
+    private static bool GetCanBeCaptured(ushort species, ReadOnlySpan<byte> flags)
+    {
+        int offset = species >> 3;
+        if (offset >= flags.Length)
+            return false;
+        int bitIndex = species & 7;
+        return (flags[offset] & (1 << bitIndex)) != 0;
+    }
+
     public override IEnumerable<ushort> GetMemoryItemParams()
     {
         var hashSet = new HashSet<ushort>(Legal.HeldItems_SWSH);
@@ -110,7 +127,7 @@ public sealed partial class MemoryContext8 : MemoryContext
 
     private static bool IsWildEncounter(PKM pk, IEncounterTemplate enc)
     {
-        if (enc is not (EncounterSlot8 or EncounterStatic { Gift: false } or EncounterStatic8N or EncounterStatic8ND or EncounterStatic8NC or EncounterStatic8U))
+        if (enc is not (EncounterSlot8 or EncounterStatic8 { Gift: false } or EncounterStatic8N or EncounterStatic8ND or EncounterStatic8NC or EncounterStatic8U))
             return false;
         if (pk is IRibbonSetMark8 { RibbonMarkCurry: true })
             return false;
@@ -161,8 +178,12 @@ public sealed partial class MemoryContext8 : MemoryContext
         return (MemoryFeelings[memory] & (1 << --feeling)) != 0;
     }
 
+    public const byte MaxIntensity = 7;
+
     public static bool CanHaveIntensity8(byte memory, byte intensity)
     {
+        if ((uint)intensity > MaxIntensity)
+            return false;
         if (memory >= MemoryFeelings.Length)
             return false;
         return MemoryMinIntensity[memory] <= intensity;
@@ -180,10 +201,10 @@ public sealed partial class MemoryContext8 : MemoryContext
         }
     }
 
-    public static int GetMinimumIntensity8(int memory)
+    public static byte GetMinimumIntensity8(int memory)
     {
         if (memory >= MemoryMinIntensity.Length)
-            return -1;
+            return 0;
         return MemoryMinIntensity[memory];
     }
 

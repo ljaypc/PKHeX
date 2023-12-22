@@ -11,7 +11,7 @@ public partial class SAV_Trainer : Form
     private readonly SaveFile Origin;
     private readonly SAV6 SAV;
 
-    public SAV_Trainer(SaveFile sav)
+    public SAV_Trainer(SAV6 sav)
     {
         InitializeComponent();
         WinFormsUtil.TranslateInterface(this, Main.CurrentLanguage);
@@ -31,15 +31,15 @@ public partial class SAV_Trainer : Form
         TrainerStats.LoadRecords(SAV, RecordLists.RecordList_6);
         TrainerStats.GetToolTipText = UpdateTip;
 
-        MaisonRecords = new[]
-        {
+        MaisonRecords =
+        [
             TB_MCSN,TB_MCSS,TB_MBSN,TB_MBSS,
             TB_MCDN,TB_MCDS,TB_MBDN,TB_MBDS,
             TB_MCTN,TB_MCTS,TB_MBTN,TB_MBTS,
             TB_MCRN,TB_MCRS,TB_MBRN,TB_MBRS,
             TB_MCMN,TB_MCMS,TB_MBMN,TB_MBMS,
-        };
-        cba = new[] { CHK_Badge1, CHK_Badge2, CHK_Badge3, CHK_Badge4, CHK_Badge5, CHK_Badge6, CHK_Badge7, CHK_Badge8 };
+        ];
+        cba = [CHK_Badge1, CHK_Badge2, CHK_Badge3, CHK_Badge4, CHK_Badge5, CHK_Badge6, CHK_Badge7, CHK_Badge8];
 
         L_MultiplayerSprite.Enabled = CB_MultiplayerSprite.Enabled =
             L_MultiplayerSprite.Visible = CB_MultiplayerSprite.Visible = PB_Sprite.Visible = SAV is not SAV6AODemo;
@@ -136,22 +136,15 @@ public partial class SAV_Trainer : Form
 
         var sit = SAV.Situation;
         NUD_M.Value = sit.M;
+        NUD_R.Value = sit.R;
         // Sanity Check Map Coordinates
-        if (!GB_Map.Enabled || sit.X % 0.5 != 0 || sit.Z % 0.5 != 0 || sit.Y % 0.5 != 0)
+        try
         {
-            GB_Map.Enabled = false;
+            NUD_X.Value = (decimal)(sit.X / 18.0);
+            NUD_Z.Value = (decimal)(sit.Z / 18.0);
+            NUD_Y.Value = (decimal)(sit.Y / 18.0);
         }
-        else
-        {
-            try
-            {
-                NUD_X.Value = (decimal)sit.X;
-                NUD_Z.Value = (decimal)sit.Z;
-                NUD_Y.Value = (decimal)sit.Y;
-            }
-            // If we can't accurately represent the coordinates, don't allow them to be changed.
-            catch { GB_Map.Enabled = false; }
-        }
+        catch { GB_Map.Enabled = false; }
 
         // Load BP and PokeMiles
         TB_BP.Text = SAV.BP.ToString();
@@ -230,9 +223,10 @@ public partial class SAV_Trainer : Form
         if (GB_Map.Enabled && MapUpdated)
         {
             sit.M = (int)NUD_M.Value;
-            sit.X = (float)NUD_X.Value;
-            sit.Z = (float)NUD_Z.Value;
-            sit.Y = (float)NUD_Y.Value;
+            sit.X = (float)(NUD_X.Value * 18);
+            sit.Z = (float)(NUD_Z.Value * 18);
+            sit.Y = (float)(NUD_Y.Value * 18);
+            sit.R = (int)NUD_R.Value;
         }
 
         SAV.BP = ushort.Parse(TB_BP.Text);

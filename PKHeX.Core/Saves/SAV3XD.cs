@@ -32,7 +32,7 @@ public sealed class SAV3XD : SaveFile, IGCSaveFile
 
     public SAV3XD() : base(SaveUtil.SIZE_G3XD)
     {
-        BAK = Array.Empty<byte>();
+        BAK = [];
         // create fake objects
         StrategyMemo = new StrategyMemo();
         ShadowInfo = new ShadowInfoTableXD(false);
@@ -188,7 +188,7 @@ public sealed class SAV3XD : SaveFile, IGCSaveFile
     public override int MaxItemID => Legal.MaxItemID_3_XD;
     public override int MaxGameID => Legal.MaxGameID_3;
 
-    public override int MaxEV => 255;
+    public override int MaxEV => EffortValues.Max255;
     public override int Generation => 3;
     public override EntityContext Context => EntityContext.Gen3;
     protected override int GiftCountMax => 1;
@@ -228,8 +228,7 @@ public sealed class SAV3XD : SaveFile, IGCSaveFile
 
     private static byte[] SetChecksums(byte[] input, int subOffset0)
     {
-        if (input.Length != SLOT_SIZE)
-            throw new ArgumentException("Input should be a slot, not the entire save binary.");
+        ArgumentOutOfRangeException.ThrowIfNotEqual(input.Length, SLOT_SIZE);
 
         byte[] data = (byte[])input.Clone();
         const int start = 0xA8; // 0x88 + 0x20
@@ -426,7 +425,7 @@ public sealed class SAV3XD : SaveFile, IGCSaveFile
         {
             var info = ItemStorage3XD.Instance;
             InventoryPouch[] pouch =
-            {
+            [
                 new InventoryPouch3GC(InventoryType.Items, info, 999, OFS_PouchHeldItem, 30), // 20 COLO, 30 XD
                 new InventoryPouch3GC(InventoryType.KeyItems, info, 1, OFS_PouchKeyItem, 43),
                 new InventoryPouch3GC(InventoryType.Balls, info, 999, OFS_PouchBalls, 16),
@@ -434,7 +433,7 @@ public sealed class SAV3XD : SaveFile, IGCSaveFile
                 new InventoryPouch3GC(InventoryType.Berries, info, 999, OFS_PouchBerry, 46),
                 new InventoryPouch3GC(InventoryType.Medicine, info, 999, OFS_PouchCologne, 3), // Cologne
                 new InventoryPouch3GC(InventoryType.BattleItems, info, 1, OFS_PouchDisc, 60),
-            };
+            ];
             return pouch.LoadAll(Data);
         }
         set => value.SaveAll(Data);

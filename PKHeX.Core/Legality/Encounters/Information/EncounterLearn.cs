@@ -9,12 +9,6 @@ namespace PKHeX.Core;
 /// </summary>
 public static class EncounterLearn
 {
-    static EncounterLearn()
-    {
-        if (!EncounterEvent.Initialized)
-            EncounterEvent.RefreshMGDB();
-    }
-
     /// <summary>
     /// Default response if there are no matches.
     /// </summary>
@@ -52,7 +46,7 @@ public static class EncounterLearn
 
         var speciesID = StringUtil.FindIndexIgnoreCase(str.specieslist, species);
         if (speciesID <= 0)
-            return Array.Empty<IEncounterable>();
+            return [];
 
         var allMoves = moves.ToList();
         var span = new ushort[allMoves.Count];
@@ -61,7 +55,7 @@ public static class EncounterLearn
             var move = allMoves[i];
             var index = StringUtil.FindIndexIgnoreCase(str.movelist, move);
             if (index <= 0)
-                return Array.Empty<IEncounterable>();
+                return [];
             span[i] = (ushort)index;
         }
 
@@ -74,9 +68,9 @@ public static class EncounterLearn
     public static IEnumerable<IEncounterable> GetLearn(ushort species, ushort[] moves, byte form = 0)
     {
         if (species == 0)
-            return Array.Empty<IEncounterable>();
+            return [];
         if (moves.AsSpan().Contains<ushort>(0))
-            return Array.Empty<IEncounterable>();
+            return [];
 
         var vers = GameUtil.GameVersions;
         return GetLearnInternal(species, form, moves, vers);

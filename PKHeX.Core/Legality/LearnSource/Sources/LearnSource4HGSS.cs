@@ -13,8 +13,8 @@ public sealed class LearnSource4HGSS : ILearnSource<PersonalInfo4>, IEggSource
 {
     public static readonly LearnSource4HGSS Instance = new();
     private static readonly PersonalTable4 Personal = PersonalTable.HGSS;
-    private static readonly Learnset[] Learnsets = LearnsetReader.GetArray(BinLinkerAccessor.Get(Util.GetBinaryResource("lvlmove_hgss.pkl"), "hs"));
-    private static readonly EggMoves6[] EggMoves = EggMoves6.GetArray(BinLinkerAccessor.Get(Util.GetBinaryResource("eggmove_hgss.pkl"), "hs"));
+    private static readonly Learnset[] Learnsets = LearnsetReader.GetArray(BinLinkerAccessor.Get(Util.GetBinaryResource("lvlmove_hgss.pkl"), "hs"u8));
+    private static readonly EggMoves6[] EggMoves = EggMoves6.GetArray(BinLinkerAccessor.Get(Util.GetBinaryResource("eggmove_hgss.pkl"), "hs"u8));
     private const int MaxSpecies = Legal.MaxSpeciesID_4;
     private const LearnEnvironment Game = HGSS;
     private const int Generation = 4;
@@ -41,7 +41,7 @@ public sealed class LearnSource4HGSS : ILearnSource<PersonalInfo4>, IEggSource
     public ReadOnlySpan<ushort> GetEggMoves(ushort species, byte form)
     {
         if (species > MaxSpecies)
-            return ReadOnlySpan<ushort>.Empty;
+            return [];
         return EggMoves[species].Moves;
     }
 

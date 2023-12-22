@@ -42,9 +42,35 @@ public sealed class LearnSource2GS : ILearnSource<PersonalInfo2>, IEggSource
     public ReadOnlySpan<ushort> GetEggMoves(ushort species, byte form)
     {
         if (species > MaxSpecies)
-            return ReadOnlySpan<ushort>.Empty;
+            return [];
         return EggMoves[species].Moves;
     }
+
+    // Present and not in Crystal:
+    // 001 (Bulbasaur) += Charm
+    // 016 (Pidgey) += SteelWing
+    // 043 (Oddish) += Charm
+    // 046 (Paras) += SweetScent
+    // 083 (Farfetchd) += SteelWing
+    // 120 (Staryu) += AuroraBeam, Barrier, Supersonic
+    // 142 (Aerodactyl) += SteelWing
+    // 143 (Snorlax) += Charm
+    // 238 (Smoochum) += LovelyKiss
+
+    // Added via Crystal, not in GS:
+    // 023 (Ekans) += Crunch
+    // 027 (Sandshrew) += MetalClaw
+    // 054 (Psyduck) += CrossChop
+    // 104 (Cubone) += SwordsDance
+    // 152 (Chikorita) += SwordsDance
+    // 155 (Cyndaquil) += Submission
+    // 163 (Hoothoot) += SkyAttack
+    // 198 (Murkrow) += SkyAttack
+    // 216 (Teddiursa) += MetalClaw
+    // 227 (Skarmory) += SkyAttack
+    // 231 (Phanpy) += WaterGun
+    // 239 (Elekid) += CrossChop
+    // 240 (Magby) += CrossChop
 
     public MoveLearnInfo GetCanLearn(PKM pk, PersonalInfo2 pi, EvoCriteria evo, ushort move, MoveSourceType types = MoveSourceType.All, LearnOption option = LearnOption.Current)
     {
@@ -60,9 +86,9 @@ public sealed class LearnSource2GS : ILearnSource<PersonalInfo2>, IEggSource
             var level = learn.GetLevelLearnMove(move);
             if (level != -1)
             {
-                if (evo.LevelMin <= level && level <= evo.LevelMax)
+                if (evo.InsideLevelRange(level))
                     return new(LevelUp, Game, (byte)level);
-                if (level == 1) // Evolution
+                if (level == 1 && types.HasFlag(MoveSourceType.Evolve)) // Evolution
                     return new(Special, Game, (byte)level);
             }
         }

@@ -10,20 +10,20 @@ namespace PKHeX.Core;
 /// </summary>
 public sealed class ShowdownSet : IBattleTemplate
 {
-    private static readonly string[] StatNames = { "HP", "Atk", "Def", "Spe", "SpA", "SpD" };
+    private static readonly string[] StatNames = ["HP", "Atk", "Def", "Spe", "SpA", "SpD"];
     private const string LineSplit = ": ";
     private const string ItemSplit = " @ ";
     private const int MAX_SPECIES = (int)MAX_COUNT - 1;
     internal const string DefaultLanguage = GameLanguage.DefaultLanguage;
     private static readonly GameStrings DefaultStrings = GameInfo.GetStrings(DefaultLanguage);
 
-    private static ReadOnlySpan<ushort> DashedSpecies => new ushort[]
-    {
+    private static ReadOnlySpan<ushort> DashedSpecies =>
+    [
         (int)NidoranF, (int)NidoranM,
         (int)HoOh,
         (int)Jangmoo, (int)Hakamoo, (int)Kommoo,
         (int)TingLu, (int)ChienPao, (int)WoChien, (int)ChiYu,
-    };
+    ];
 
     /// <inheritdoc/>
     public ushort Species { get; private set; }
@@ -62,10 +62,10 @@ public sealed class ShowdownSet : IBattleTemplate
     public byte Form { get; private set; }
 
     /// <inheritdoc/>
-    public int[] EVs { get; } = {00, 00, 00, 00, 00, 00};
+    public int[] EVs { get; } = [00, 00, 00, 00, 00, 00];
 
     /// <inheritdoc/>
-    public int[] IVs { get; } = {31, 31, 31, 31, 31, 31};
+    public int[] IVs { get; } = [31, 31, 31, 31, 31, 31];
 
     /// <inheritdoc/>
     public int HiddenPowerType { get; private set; } = -1;
@@ -73,7 +73,7 @@ public sealed class ShowdownSet : IBattleTemplate
     public MoveType TeraType { get; private set; } = MoveType.Any;
 
     /// <inheritdoc/>
-    public ushort[] Moves { get; } = {0, 0, 0, 0};
+    public ushort[] Moves { get; } = [0, 0, 0, 0];
 
     /// <inheritdoc/>
     public bool CanGigantamax { get; private set; }
@@ -145,7 +145,8 @@ public sealed class ShowdownSet : IBattleTemplate
     // We will handle this 1-2 letter edge case only if the line is the first line of the set, in the rare chance we are importing for a non-English language?
     private const int MinLength = 3;
     private const int MaxLength = 80;
-    private static bool IsLengthOutOfRange(ReadOnlySpan<char> trim) => (uint)(trim.Length - MinLength) > MaxLength + MinLength;
+    private static bool IsLengthOutOfRange(ReadOnlySpan<char> trim) => IsLengthOutOfRange(trim.Length);
+    private static bool IsLengthOutOfRange(int length) => (uint)(length - MinLength) > MaxLength - MinLength;
 
     private void ParseLines(SpanLineEnumerator lines)
     {
@@ -309,6 +310,8 @@ public sealed class ShowdownSet : IBattleTemplate
         var val = StringUtil.FindIndexIgnoreCase(types, value);
         if (val < 0)
             return false;
+        if (val == TeraTypeUtil.StellarTypeDisplayStringIndex)
+            val = TeraTypeUtil.Stellar;
         TeraType = (MoveType)val;
         return true;
     }
@@ -368,8 +371,14 @@ public sealed class ShowdownSet : IBattleTemplate
         // Secondary Stats
         if ((uint)Ability < Strings.Ability.Count)
             result.Add($"Ability: {Strings.Ability[Ability]}");
-        if (Context == EntityContext.Gen9 && TeraType != MoveType.Any && (uint)TeraType < Strings.Types.Count)
-            result.Add($"Tera Type: {Strings.Types[(int)TeraType]}");
+        if (Context == EntityContext.Gen9 && TeraType != MoveType.Any)
+        {
+            if ((uint)TeraType <= (int)MoveType.Fairy)
+                result.Add($"Tera Type: {Strings.Types[(int)TeraType]}");
+            else if ((uint)TeraType == TeraTypeUtil.Stellar)
+                result.Add($"Tera Type: {Strings.Types[TeraTypeUtil.StellarTypeDisplayStringIndex]}");
+        }
+
         if (Level != 100)
             result.Add($"Level: {Level}");
         if (Shiny)
@@ -424,11 +433,11 @@ public sealed class ShowdownSet : IBattleTemplate
         return $"{Nickname} ({specForm})";
     }
 
-    private static string[] GetStringStats(ReadOnlySpan<int> stats, int ignoreValue)
+    public static string[] GetStringStats<T>(ReadOnlySpan<T> stats, T ignoreValue) where T : IEquatable<T>
     {
         var count = stats.Length - stats.Count(ignoreValue);
         if (count == 0)
-            return Array.Empty<string>();
+            return [];
 
         var result = new string[count];
         int ctr = 0;
@@ -436,7 +445,7 @@ public sealed class ShowdownSet : IBattleTemplate
         {
             var statIndex = GetStatIndexStored(i);
             var statValue = stats[statIndex];
-            if (statValue == ignoreValue)
+            if (statValue.Equals(ignoreValue))
                 continue; // ignore unused stats
             var statName = StatNames[statIndex];
             result[ctr++] = $"{statValue} {statName}";
@@ -675,7 +684,7 @@ public sealed class ShowdownSet : IBattleTemplate
             else // (Species), or garbage
             {
                 species = tmp;
-                nickname = ReadOnlySpan<char>.Empty;
+                nickname = [];
             }
         }
 
@@ -702,7 +711,8 @@ public sealed class ShowdownSet : IBattleTemplate
 
         // Defined Hidden Power
         var type = GetHiddenPowerType(moveString[(hiddenPowerName.Length + 1)..]);
-        int hpVal = StringUtil.FindIndexIgnoreCase(Strings.types.AsSpan(1, 16), type); // Get HP Type
+        var types = Strings.types.AsSpan(1, HiddenPower.TypeCount);
+        int hpVal = StringUtil.FindIndexIgnoreCase(types, type); // Get HP Type
         if (hpVal == -1)
             return hiddenPowerName;
 

@@ -9,16 +9,26 @@ namespace PKHeX.Core;
 /// This is fabricated data built to emulate the future generation Mystery Gift objects.
 /// Data here is not stored in any save file and cannot be naturally exported.
 /// </remarks>
-public sealed class WC3 : MysteryGift, IRibbonSetEvent3, ILangNicknamedTemplate
+public sealed class WC3(bool Fateful = false)
+    : MysteryGift, IRibbonSetEvent3, ILangNicknamedTemplate, IRandomCorrelation
 {
     public override MysteryGift Clone() => (WC3)MemberwiseClone();
-
-    public WC3(bool fateful = false) => FatefulEncounter = fateful;
 
     /// <summary>
     /// Matched <see cref="PIDIV"/> Type
     /// </summary>
     public PIDType Method { get; init; }
+    public PIDType GetSuggestedCorrelation() => Method;
+    public bool IsCompatible(PIDType type, PKM pk)
+    {
+        if (type == Method)
+            return true;
+
+        // forced shiny eggs, when hatched, can lose their detectable correlation.
+        if (!IsEgg || pk.IsEgg)
+            return false;
+        return type is PIDType.BACD_R_S or PIDType.BACD_U_S;
+    }
 
     private const ushort UnspecifiedID = ushort.MaxValue;
 
@@ -36,7 +46,7 @@ public sealed class WC3 : MysteryGift, IRibbonSetEvent3, ILangNicknamedTemplate
     public override Moveset Moves { get; set; }
     public bool NotDistributed { get; init; }
     public override Shiny Shiny { get; init; }
-    public override bool FatefulEncounter { get; } // Obedience Flag
+    public override bool FatefulEncounter { get; } = Fateful; // Obedience Flag
 
     // Mystery Gift Properties
     public override int Generation => 3;
@@ -116,7 +126,11 @@ public sealed class WC3 : MysteryGift, IRibbonSetEvent3, ILangNicknamedTemplate
             pk.Language = (int)GetSafeLanguage((LanguageID)tr.Language);
             pk.OT_Name = !string.IsNullOrWhiteSpace(OT_Name) ? OT_Name : tr.OT;
             if (IsEgg)
+            {
                 pk.IsEgg = true; // lang should be set to japanese already
+                if (pk.OT_Trash[0] == 0xFF)
+                    pk.OT_Name = "ゲーフリ";
+            }
         }
         pk.Nickname = Nickname ?? SpeciesName.GetSpeciesNameGeneration(Species, pk.Language, 3); // will be set to Egg nickname if appropriate by PK3 setter
 
@@ -189,6 +203,7 @@ public sealed class WC3 : MysteryGift, IRibbonSetEvent3, ILangNicknamedTemplate
         var seed = Util.Rand32();
         seed = TID16 == 06930 ? MystryMew.GetSeed(seed, Method) : GetSaneSeed(seed);
         PIDGenerator.SetValuesFromSeed(pk, Method, seed);
+        pk.RefreshAbility((int)(pk.EncryptionConstant & 1));
     }
 
     private uint GetSaneSeed(uint seed) => Method switch
@@ -261,11 +276,7 @@ public sealed class WC3 : MysteryGift, IRibbonSetEvent3, ILangNicknamedTemplate
         if (Language != -1 && Language != pk.Language) return false;
         if (Ball != pk.Ball) return false;
         if (FatefulEncounter != pk.FatefulEncounter)
-        {
-            // XD Gifts only at level 20 get flagged after transfer
-            if (Version == GameVersion.XD != (pk is XK3))
-                return false;
-        }
+            return false;
 
         if (pk.IsNative)
         {
@@ -295,7 +306,7 @@ public sealed class WC3 : MysteryGift, IRibbonSetEvent3, ILangNicknamedTemplate
         return ot.Length == 7 && wc.StartsWith(ot, StringComparison.Ordinal);
     }
 
-    protected override bool IsMatchDeferred(PKM pk) => Species != pk.Species;
+    protected override bool IsMatchDeferred(PKM pk) => false;
     protected override bool IsMatchPartial(PKM pk) => false;
 
     public string GetNickname(int language) => Nickname ?? string.Empty;

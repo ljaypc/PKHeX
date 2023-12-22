@@ -7,9 +7,11 @@ namespace PKHeX.Core;
 /// <summary>
 /// Generation 8 Mystery Gift Template File
 /// </summary>
-public sealed class WC8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDynamaxLevel, IRibbonIndex, IMemoryOT, ILangNicknamedTemplate, IEncounterServerDate,
+public sealed class WC8(byte[] Data) : DataMysteryGift(Data), ILangNick, INature, IGigantamax, IDynamaxLevel, IRibbonIndex, IMemoryOT, ILangNicknamedTemplate, IEncounterServerDate, IRestrictVersion,
     IRibbonSetEvent3, IRibbonSetEvent4, IRibbonSetCommon3, IRibbonSetCommon4, IRibbonSetCommon6, IRibbonSetCommon7, IRibbonSetCommon8, IRibbonSetMark8
 {
+    public WC8() : this(new byte[Size]) { }
+
     public const int Size = 0x2D0;
     public const int CardStart = 0x0;
 
@@ -25,9 +27,6 @@ public sealed class WC8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDyn
         BP = 3,
         Clothing = 4,
     }
-
-    public WC8() : this(new byte[Size]) { }
-    public WC8(byte[] data) : base(data) { }
 
     public byte RestrictVersion { get => Data[0xE]; set => Data[0xE] = value; }
 
@@ -196,16 +195,17 @@ public sealed class WC8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDyn
     private const int RibbonBytesCount = 0x20;
     private const int RibbonByteNone = 0xFF; // signed -1
 
+    private ReadOnlySpan<byte> RibbonSpan => Data.AsSpan(RibbonBytesOffset, RibbonBytesCount);
+
     public bool HasMarkEncounter8
     {
         get
         {
-            for (int i = 0; i < RibbonBytesCount; i++)
+            foreach (var value in RibbonSpan)
             {
-                var value = Data[RibbonBytesOffset + i];
                 if (value == RibbonByteNone)
-                    return false;
-                if ((RibbonIndex)value is >= MarkLunchtime and <= MarkSlump)
+                    return false; // end
+                if (((RibbonIndex)value).IsEncounterMark8())
                     return true;
             }
 
@@ -215,15 +215,13 @@ public sealed class WC8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDyn
 
     public byte GetRibbonAtIndex(int byteIndex)
     {
-        if ((uint)byteIndex >= RibbonBytesCount)
-            throw new ArgumentOutOfRangeException(nameof(byteIndex));
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual<uint>((uint)byteIndex, RibbonBytesCount);
         return Data[RibbonBytesOffset + byteIndex];
     }
 
     public void SetRibbonAtIndex(int byteIndex, byte ribbonIndex)
     {
-        if ((uint)byteIndex >= RibbonBytesCount)
-            throw new ArgumentOutOfRangeException(nameof(byteIndex));
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual<uint>((uint)byteIndex, RibbonBytesCount);
         Data[RibbonBytesOffset + byteIndex] = ribbonIndex;
     }
 
@@ -253,10 +251,11 @@ public sealed class WC8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDyn
     // Meta Accessible Properties
     public override int[] IVs
     {
-        get => new[] { IV_HP, IV_ATK, IV_DEF, IV_SPE, IV_SPA, IV_SPD };
+        get => [IV_HP, IV_ATK, IV_DEF, IV_SPE, IV_SPA, IV_SPD];
         set
         {
-            if (value.Length != 6) return;
+            if (value.Length != 6)
+                return;
             IV_HP = value[0]; IV_ATK = value[1]; IV_DEF = value[2];
             IV_SPE = value[3]; IV_SPA = value[4]; IV_SPD = value[5];
         }
@@ -276,10 +275,11 @@ public sealed class WC8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDyn
 
     public int[] EVs
     {
-        get => new[] { EV_HP, EV_ATK, EV_DEF, EV_SPE, EV_SPA, EV_SPD };
+        get => [EV_HP, EV_ATK, EV_DEF, EV_SPE, EV_SPA, EV_SPD];
         set
         {
-            if (value.Length != 6) return;
+            if (value.Length != 6)
+                return;
             EV_HP = value[0]; EV_ATK = value[1]; EV_DEF = value[2];
             EV_SPE = value[3]; EV_SPA = value[4]; EV_SPD = value[5];
         }
@@ -537,27 +537,26 @@ public sealed class WC8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDyn
     private DateOnly GetSuggestedDate()
     {
         if (!IsDateRestricted)
-            return DateOnly.FromDateTime(DateTime.Now);
+            return EncounterDate.GetDateSwitch();
         if (EncounterServerDate.WC8GiftsChk.TryGetValue(Checksum, out var range))
             return range.Start;
         if (EncounterServerDate.WC8Gifts.TryGetValue(CardID, out range))
             return range.Start;
-        return DateOnly.FromDateTime(DateTime.Now);
+        return EncounterDate.GetDateSwitch();
     }
 
-    private void SetEggMetData(PKM pk)
+    private void SetEggMetData(PK8 pk)
     {
         pk.IsEgg = true;
-        pk.EggMetDate = DateOnly.FromDateTime(DateTime.Now);
+        pk.EggMetDate = EncounterDate.GetDateSwitch();
         pk.Nickname = SpeciesName.GetEggName(pk.Language, Generation);
         pk.IsNicknamed = true;
     }
 
-    private void SetPINGA(PKM pk, EncounterCriteria criteria)
+    private void SetPINGA(PK8 pk, EncounterCriteria criteria)
     {
-        var pi = PersonalTable.SWSH.GetFormEntry(Species, Form);
-        pk.Nature = (int)criteria.GetNature(Nature == -1 ? Core.Nature.Random : (Nature)Nature);
-        pk.StatNature = pk.Nature;
+        var pi = pk.PersonalInfo;
+        pk.Nature = pk.StatNature = (int)criteria.GetNature(Nature == -1 ? Core.Nature.Random : (Nature)Nature);
         pk.Gender = criteria.GetGender(Gender, pi);
         var av = GetAbilityIndex(criteria);
         pk.RefreshAbility(av);
@@ -614,7 +613,7 @@ public sealed class WC8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDyn
         return pid;
     }
 
-    private void SetPID(PKM pk)
+    private void SetPID(PK8 pk)
     {
         pk.PID = GetPID(pk, PIDType);
     }
@@ -727,7 +726,7 @@ public sealed class WC8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDyn
         if (Nature != -1 && pk.Nature != Nature) return false;
         if (Gender != 3 && Gender != pk.Gender) return false;
 
-        if (pk is PK8 and IGigantamax g && g.CanGigantamax != CanGigantamax && !g.CanToggleGigantamax(pk.Species, pk.Form, Species, Form))
+        if (pk is PK8 and IGigantamax g && g.CanGigantamax != CanGigantamax && !Gigantamax.CanToggle(pk.Species, pk.Form, Species, Form))
             return false;
 
         if (pk is PK8 pk8 && pk8.DynamaxLevel < DynamaxLevel)
@@ -780,7 +779,7 @@ public sealed class WC8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDyn
 
     public bool IsDateRestricted => IsHOMEGift;
 
-    protected override bool IsMatchDeferred(PKM pk) => Species != pk.Species;
+    protected override bool IsMatchDeferred(PKM pk) => false;
     protected override bool IsMatchPartial(PKM pk) => false; // no version compatibility checks yet.
 
     #region Lazy Ribbon Implementation
@@ -885,20 +884,17 @@ public sealed class WC8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDyn
     public bool RibbonHisui { get => this.GetRibbonIndex(Hisui); set => this.SetRibbonIndex(Hisui, value); }
 
     public int GetRibbonByte(int index) => Array.IndexOf(Data, (byte)index, RibbonBytesOffset, RibbonBytesCount);
-    public bool GetRibbon(int index) => GetRibbonByte(index) >= 0;
+    public bool GetRibbon(int index) => RibbonSpan.Contains((byte)index);
 
     public void SetRibbon(int index, bool value = true)
     {
-        if ((uint)index > (uint)MarkSlump)
-            throw new ArgumentOutOfRangeException(nameof(index));
-
+        ArgumentOutOfRangeException.ThrowIfGreaterThan((uint)index, (uint)RibbonIndexExtensions.MAX_G8);
         if (value)
         {
             if (GetRibbon(index))
                 return;
             var openIndex = Array.IndexOf(Data, RibbonByteNone, RibbonBytesOffset, RibbonBytesCount);
-            if (openIndex == -1) // Full?
-                throw new ArgumentOutOfRangeException(nameof(index));
+            ArgumentOutOfRangeException.ThrowIfNegative(openIndex, nameof(openIndex)); // Full?
             SetRibbonAtIndex(openIndex, (byte)index);
         }
         else

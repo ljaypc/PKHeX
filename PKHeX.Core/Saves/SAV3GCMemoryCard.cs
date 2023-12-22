@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using static System.Buffers.Binary.BinaryPrimitives;
 
@@ -27,7 +27,7 @@ public enum GCMemoryCardState
 /// <summary>
 /// GameCube save container which may or may not contain Generation 3 <see cref="SaveFile"/> objects.
 /// </summary>
-public sealed class SAV3GCMemoryCard
+public sealed class SAV3GCMemoryCard(byte[] Data)
 {
     private const int BLOCK_SIZE = 0x2000;
     private const int MBIT_TO_BLOCKS = 0x10;
@@ -35,19 +35,12 @@ public sealed class SAV3GCMemoryCard
     private const int DENTRY_SIZE = 0x40;
     private const int NumEntries_Directory = BLOCK_SIZE / DENTRY_SIZE;
 
-    private static readonly HashSet<int> ValidMemoryCardSizes = new()
+    public static bool IsMemoryCardSize(long size)
     {
-        0x0080000, // 512KB 59 Blocks Memory Card
-        0x0100000, // 1MB
-        0x0200000, // 2MB
-        0x0400000, // 4MB 251 Blocks Memory Card
-        0x0800000, // 8MB
-        0x1000000, // 16MB 1019 Blocks Default Dolphin Memory Card
-        0x2000000, // 64MB
-        0x4000000, // 128MB
-    };
-
-    public static bool IsMemoryCardSize(long size) => ValidMemoryCardSizes.Contains((int)size);
+        if ((size & 0x7F8_0000) == 0) // 512KB - 64MB
+            return false;
+        return (size & (size - 1)) == 0; // size is a power of 2
+    }
 
     public static bool IsMemoryCardSize(ReadOnlySpan<byte> Data)
     {
@@ -71,16 +64,18 @@ public sealed class SAV3GCMemoryCard
     private const int BlockAlloc = BLOCK_SIZE * BlockAlloc_Block;
     private const int BlockAllocBAK = BLOCK_SIZE * BlockAllocBackup_Block;
 
-    public SAV3GCMemoryCard(byte[] data) => Data = data;
-
     // Checksums
-    private (ushort Checksum, ushort Inverse) GetChecksum(int block, int offset, int length)
+    private (ushort Checksum, ushort Inverse) GetChecksum(int block, int offset, [ConstantExpected(Min = 0)] int length)
+    {
+        var ofs = (block * BLOCK_SIZE) + offset;
+        var span = Data.AsSpan(ofs, length);
+        return GetChecksum(span);
+    }
+
+    private static (ushort Checksum, ushort Inverse) GetChecksum(ReadOnlySpan<byte> span)
     {
         ushort csum = 0;
         ushort inv_csum = 0;
-
-        var ofs = (block * BLOCK_SIZE) + offset;
-        var span = Data.AsSpan(ofs, length);
 
         for (int i = 0; i < span.Length; i += 2)
         {
@@ -222,7 +217,7 @@ public sealed class SAV3GCMemoryCard
             ? DirectoryBackup_Block
             : Directory_Block;
 
-        // Search for pokemon savegames in the directory
+        // Search for Pokémon saves in the directory
         SaveGameCount = 0;
         for (int i = 0; i < NumEntries_Directory; i++)
         {
@@ -313,23 +308,34 @@ public sealed class SAV3GCMemoryCard
     }
 
     public string GCISaveName => GCISaveGameName();
-    public readonly byte[] Data;
+    public readonly byte[] Data = Data;
 
     private string GCISaveGameName()
     {
         int offset = (DirectoryBlock_Used * BLOCK_SIZE) + (EntrySelected * DENTRY_SIZE);
-        string GameCode = EncodingType.GetString(Data, offset, 4);
-        string Makercode = EncodingType.GetString(Data, offset + 0x04, 2);
-        string FileName = EncodingType.GetString(Data, offset + 0x08, DENTRY_STRLEN);
+        var span = Data.AsSpan(offset, DENTRY_SIZE);
+        return GetSaveName(EncodingType, span);
+    }
 
-        return $"{Makercode}-{GameCode}-{Util.TrimFromZero(FileName)}.gci";
+    private static string GetSaveName(Encoding encoding, ReadOnlySpan<byte> data)
+    {
+        string GameCode = encoding.GetString(data[..4]);
+        string Makercode = encoding.GetString(data.Slice(4, 2));
+
+        Span<char> FileName = stackalloc char[DENTRY_STRLEN];
+        encoding.GetString(data.Slice(0x08, DENTRY_STRLEN));
+        var zero = FileName.IndexOf('\0');
+        if (zero >= 0)
+            FileName = FileName[..zero];
+
+        return $"{Makercode}-{GameCode}-{FileName}.gci";
     }
 
     public ReadOnlyMemory<byte> ReadSaveGameData()
     {
         var entry = EntrySelected;
         if (entry < 0)
-            return Array.Empty<byte>(); // No entry selected
+            return ReadOnlyMemory<byte>.Empty; // No entry selected
         return ReadSaveGameData(entry);
     }
 

@@ -12,8 +12,11 @@ namespace PKHeX.Core;
 /// https://projectpokemon.org/home/forums/topic/5870-pok%C3%A9mon-mystery-gift-editor-v143-now-with-bw-support/
 /// See also: http://tccphreak.shiny-clique.net/debugger/pcdfiles.htm
 /// </remarks>
-public sealed class PCD : DataMysteryGift, IRibbonSetEvent3, IRibbonSetEvent4
+public sealed class PCD(byte[] Data)
+    : DataMysteryGift(Data), IRibbonSetEvent3, IRibbonSetEvent4, IRestrictVersion, IRandomCorrelation
 {
+    public PCD() : this(new byte[Size]) { }
+
     public const int Size = 0x358; // 856
     public override int Generation => 4;
     public override EntityContext Context => EntityContext.Gen4;
@@ -32,9 +35,6 @@ public sealed class PCD : DataMysteryGift, IRibbonSetEvent3, IRibbonSetEvent4
         set => Gift.Ball = value;
     }
 
-    public PCD() : this(new byte[Size]) { }
-    public PCD(byte[] data) : base(data) { }
-
     public override byte[] Write()
     {
         // Ensure PGT content is encrypted
@@ -46,7 +46,7 @@ public sealed class PCD : DataMysteryGift, IRibbonSetEvent3, IRibbonSetEvent4
 
     public PGT Gift
     {
-        get => _gift ??= new PGT(Data.Slice(0, PGT.Size));
+        get => _gift ??= new PGT(Data[..PGT.Size]);
         set => (_gift = value).Data.CopyTo(Data, 0);
     }
 
@@ -100,6 +100,9 @@ public sealed class PCD : DataMysteryGift, IRibbonSetEvent3, IRibbonSetEvent4
     public override int Location { get => IsEgg ? 0 : Gift.EggLocation + 3000; set { } }
     public override int EggLocation { get => IsEgg ? Gift.EggLocation + 3000 : 0; set { } }
 
+    public bool IsCompatible(PIDType val, PKM pk) => Gift.IsCompatible(val, pk);
+    public PIDType GetSuggestedCorrelation() => Gift.GetSuggestedCorrelation();
+
     public bool GiftEquals(PGT pgt)
     {
         // Skip over the PGT's "Corresponding PCD Slot" @ 0x02
@@ -127,7 +130,7 @@ public sealed class PCD : DataMysteryGift, IRibbonSetEvent3, IRibbonSetEvent4
         return Gift.ConvertToPKM(tr, criteria);
     }
 
-    public bool CanBeReceivedByVersion(int pkmVersion) => ((CardCompatibility >> pkmVersion) & 1) == 1;
+    public bool CanBeReceivedByVersion(int pkmVersion) => (byte)Version == pkmVersion;
 
     public override bool IsMatchExact(PKM pk, EvoCriteria evo)
     {
@@ -194,7 +197,7 @@ public sealed class PCD : DataMysteryGift, IRibbonSetEvent3, IRibbonSetEvent4
     }
 
     protected override bool IsMatchPartial(PKM pk) => !CanBeReceivedByVersion(pk.Version);
-    protected override bool IsMatchDeferred(PKM pk) => Species != pk.Species;
+    protected override bool IsMatchDeferred(PKM pk) => false;
 
     public bool RibbonEarth { get => Gift.RibbonEarth; set => Gift.RibbonEarth = value; }
     public bool RibbonNational { get => Gift.RibbonNational; set => Gift.RibbonNational = value; }

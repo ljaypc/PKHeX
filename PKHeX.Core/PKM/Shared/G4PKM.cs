@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace PKHeX.Core;
 
@@ -7,7 +8,7 @@ public abstract class G4PKM : PKM,
     IRibbonSetEvent3, IRibbonSetEvent4, IRibbonSetUnique3, IRibbonSetUnique4, IRibbonSetCommon3, IRibbonSetCommon4, IRibbonSetRibbons, IContestStats, IGroundTile
 {
     protected G4PKM(byte[] data) : base(data) { }
-    protected G4PKM(int size) : base(size) { }
+    protected G4PKM([ConstantExpected] int size) : base(size) { }
 
     // Maximums
     public sealed override ushort MaxMoveID => Legal.MaxMoveID_4;
@@ -17,7 +18,7 @@ public abstract class G4PKM : PKM,
     public sealed override int MaxBallID => Legal.MaxBallID_4;
     public sealed override int MaxGameID => Legal.MaxGameID_4;
     public sealed override int MaxIV => 31;
-    public sealed override int MaxEV => 255;
+    public sealed override int MaxEV => EffortValues.Max255;
     public sealed override int MaxStringLengthOT => 7;
     public sealed override int MaxStringLengthNickname => 10;
 
@@ -256,7 +257,7 @@ public abstract class G4PKM : PKM,
         {
             static byte Clamp(int value, Ball max) => (uint)value <= (uint)max ? (byte)value : (byte)Core.Ball.Poke;
 
-            // Ball to display in DPPt
+            // Ball to display in D/P/Pt
             BallDPPt = Clamp(value, Core.Ball.Cherish);
 
             // Only set the HG/SS value if it originated in HG/SS and was not an event.
@@ -279,7 +280,7 @@ public abstract class G4PKM : PKM,
         return false;
     }
 
-    // Enforce DP content only (no PtHGSS)
+    // Enforce D/P content only (no Pt or HG/SS)
     protected void StripPtHGSSContent(PKM pk)
     {
         if (Form != 0 && !PersonalTable.DP[Species].HasForms && Species != 201)

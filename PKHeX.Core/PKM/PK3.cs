@@ -7,10 +7,7 @@ namespace PKHeX.Core;
 /// <summary> Generation 3 <see cref="PKM"/> format. </summary>
 public sealed class PK3 : G3PKM, ISanityChecksum
 {
-    public override ReadOnlySpan<ushort> ExtraBytes => new ushort[]
-    {
-        0x2A, 0x2B,
-    };
+    public override ReadOnlySpan<ushort> ExtraBytes => [0x2A, 0x2B];
 
     public override int SIZE_PARTY => PokeCrypto.SIZE_3PARTY;
     public override int SIZE_STORED => PokeCrypto.SIZE_3STORED;
@@ -259,7 +256,7 @@ public sealed class PK3 : G3PKM, ISanityChecksum
             PKRS_Strain = PKRS_Strain,
             PKRS_Days = PKRS_Days,
             OT_Gender = OT_Gender,
-            MetDate = DateOnly.FromDateTime(DateTime.Now),
+            MetDate = EncounterDate.GetDateNDS(),
             Met_Level = CurrentLevel,
             Met_Location = Locations.Transfer3, // Pal Park
 

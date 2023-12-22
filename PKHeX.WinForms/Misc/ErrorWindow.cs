@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Text;
 using System.Windows.Forms;
 
@@ -9,12 +9,10 @@ public sealed partial class ErrorWindow : Form
     public static DialogResult ShowErrorDialog(string friendlyMessage, Exception ex, bool allowContinue)
     {
         var lang = System.Threading.Thread.CurrentThread.CurrentUICulture.TwoLetterISOLanguageName;
-        using var dialog = new ErrorWindow(lang)
-        {
-            ShowContinue = allowContinue,
-            Message = friendlyMessage,
-            Error = ex,
-        };
+        using var dialog = new ErrorWindow(lang);
+        dialog.ShowContinue = allowContinue;
+        dialog.Message = friendlyMessage;
+        dialog.Error = ex;
         var dialogResult = dialog.ShowDialog();
         if (dialogResult == DialogResult.Abort)
             Environment.Exit(1);
@@ -32,7 +30,7 @@ public sealed partial class ErrorWindow : Form
     }
 
     /// <summary>
-    /// Gets or sets whether or not the "Continue" button is visible.
+    /// Gets or sets the visibility of the "Continue" button.
     /// </summary>
     /// <remarks>For UI exceptions, continuing could be safe.
     /// For application exceptions, continuing is not possible, so the button should not be shown.</remarks>

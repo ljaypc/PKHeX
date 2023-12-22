@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace PKHeX.Core;
 
@@ -46,6 +47,17 @@ public abstract class SCBlockAccessor : ISaveBlockAccessor<SCBlock>
 
     #region Safe Block Operations (no exceptions thrown)
     /// <summary>
+    /// Tries to grab the actual block, and returns false if the block does not exist.
+    /// </summary>
+    /// <param name="key">Block Key</param>
+    /// <param name="block">Result, if found.</param>
+    /// <returns>True if found, false if not found.</returns>
+    public bool TryGetBlock(uint key, [NotNullWhen(true)] out SCBlock? block) => TryFind(BlockInfo, key, out block);
+
+    /// <inheritdoc cref="TryGetBlock(uint, out SCBlock)"/>
+    public bool TryGetBlock(ReadOnlySpan<char> name, [NotNullWhen(true)] out SCBlock? block) => TryGetBlock(Hash(name), out block);
+
+    /// <summary>
     /// Tries to grab the actual block, and returns a new dummy if the block does not exist.
     /// </summary>
     /// <param name="key">Block Key</param>
@@ -79,6 +91,18 @@ public abstract class SCBlockAccessor : ISaveBlockAccessor<SCBlock>
     #endregion
 
     #region Block Fetching
+    private static bool TryFind(IReadOnlyList<SCBlock> array, uint key, [NotNullWhen(true)] out SCBlock? block)
+    {
+        var index = FindIndex(array, key);
+        if (index != -1)
+        {
+            block = array[index];
+            return true;
+        }
+        block = default;
+        return false;
+    }
+
     private static SCBlock Find(IReadOnlyList<SCBlock> array, uint key)
     {
         var index = FindIndex(array, key);
@@ -92,8 +116,10 @@ public abstract class SCBlockAccessor : ISaveBlockAccessor<SCBlock>
         var index = FindIndex(array, key);
         if (index != -1)
             return array[index];
-        return new SCBlock(0, SCTypeCode.None);
+        return GetFakeBlock();
     }
+
+    protected static SCBlock GetFakeBlock() => new(0, SCTypeCode.None);
 
     /// <summary>
     /// Finds a specified <see cref="key"/> within the <see cref="array"/>.

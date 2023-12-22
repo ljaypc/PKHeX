@@ -7,10 +7,14 @@ namespace PKHeX.Core;
 /// <summary>
 /// Generation 8 Mystery Gift Template File, same as <see cref="WC8"/> with <see cref="IGanbaru"/> fields at the end.
 /// </summary>
-public sealed class WA8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDynamaxLevel, IRibbonIndex, IMemoryOT, IEncounterServerDate,
+public sealed class WA8(byte[] Data) : DataMysteryGift(Data), ILangNick, INature, IGigantamax, IDynamaxLevel,
+    IRibbonIndex, IMemoryOT, IEncounterServerDate,
     ILangNicknamedTemplate, IGanbaru, IAlpha,
-    IRibbonSetEvent3, IRibbonSetEvent4, IRibbonSetCommon3, IRibbonSetCommon4, IRibbonSetCommon6, IRibbonSetCommon7, IRibbonSetCommon8, IRibbonSetMark8
+    IRibbonSetEvent3, IRibbonSetEvent4, IRibbonSetCommon3, IRibbonSetCommon4, IRibbonSetCommon6, IRibbonSetCommon7,
+    IRibbonSetCommon8, IRibbonSetMark8
 {
+    public WA8() : this(new byte[Size]) { }
+
     public const int Size = 0x2C8;
 
     public override int Generation => 8;
@@ -24,9 +28,6 @@ public sealed class WA8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDyn
         Item = 2,
         Clothing = 3,
     }
-
-    public WA8() : this(new byte[Size]) { }
-    public WA8(byte[] data) : base(data) { }
 
     public bool CanBeReceivedByVersion(int v, PKM pk) => v is (int) GameVersion.PLA || (pk is PK8 && v is (int)GameVersion.SW);
     public bool IsDateRestricted => true;
@@ -215,15 +216,13 @@ public sealed class WA8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDyn
 
     public byte GetRibbonAtIndex(int byteIndex)
     {
-        if ((uint)byteIndex >= RibbonBytesCount)
-            throw new ArgumentOutOfRangeException(nameof(byteIndex));
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual<uint>((uint)byteIndex, RibbonBytesCount);
         return Data[RibbonBytesOffset + byteIndex];
     }
 
     public void SetRibbonAtIndex(int byteIndex, byte ribbonIndex)
     {
-        if ((uint)byteIndex >= RibbonBytesCount)
-            throw new ArgumentOutOfRangeException(nameof(byteIndex));
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual<uint>((uint)byteIndex, RibbonBytesCount);
         Data[RibbonBytesOffset + byteIndex] = ribbonIndex;
     }
 
@@ -259,7 +258,7 @@ public sealed class WA8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDyn
     // Meta Accessible Properties
     public override int[] IVs
     {
-        get => new[] { IV_HP, IV_ATK, IV_DEF, IV_SPE, IV_SPA, IV_SPD };
+        get => [IV_HP, IV_ATK, IV_DEF, IV_SPE, IV_SPA, IV_SPD];
         set
         {
             if (value.Length != 6)
@@ -283,7 +282,7 @@ public sealed class WA8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDyn
 
     public int[] EVs
     {
-        get => new[] { EV_HP, EV_ATK, EV_DEF, EV_SPE, EV_SPA, EV_SPD };
+        get => [EV_HP, EV_ATK, EV_DEF, EV_SPE, EV_SPA, EV_SPD];
         set
         {
             if (value.Length != 6)
@@ -491,7 +490,7 @@ public sealed class WA8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDyn
             pk.SID16 = tr.SID16;
         }
 
-        pk.MetDate = IsDateRestricted && EncounterServerDate.WA8Gifts.TryGetValue(CardID, out var dt) ? dt.Start : DateOnly.FromDateTime(DateTime.Now);
+        pk.MetDate = IsDateRestricted && EncounterServerDate.WA8Gifts.TryGetValue(CardID, out var dt) ? dt.Start : EncounterDate.GetDateSwitch();
 
         // HOME Gifts for Sinnoh/Hisui starters were forced JPN until May 20, 2022 (UTC).
         if (CardID is 9018 or 9019 or 9020)
@@ -526,19 +525,18 @@ public sealed class WA8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDyn
         return pk;
     }
 
-    private void SetEggMetData(PKM pk)
+    private void SetEggMetData(PA8 pk)
     {
         pk.IsEgg = true;
-        pk.EggMetDate = DateOnly.FromDateTime(DateTime.Now);
+        pk.EggMetDate = EncounterDate.GetDateSwitch();
         pk.Nickname = SpeciesName.GetEggName(pk.Language, Generation);
         pk.IsNicknamed = true;
     }
 
-    private void SetPINGA(PKM pk, EncounterCriteria criteria)
+    private void SetPINGA(PA8 pk, EncounterCriteria criteria)
     {
-        var pi = PersonalTable.LA.GetFormEntry(Species, Form);
-        pk.Nature = (int)criteria.GetNature(Nature == -1 ? Core.Nature.Random : (Nature)Nature);
-        pk.StatNature = pk.Nature;
+        var pi = pk.PersonalInfo;
+        pk.Nature = pk.StatNature = (int)criteria.GetNature(Nature == -1 ? Core.Nature.Random : (Nature)Nature);
         pk.Gender = criteria.GetGender(Gender, pi);
         var av = GetAbilityIndex(criteria);
         pk.RefreshAbility(av);
@@ -706,7 +704,7 @@ public sealed class WA8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDyn
         return pk.PID == GetPID(pk, type);
     }
 
-    protected override bool IsMatchDeferred(PKM pk) => Species != pk.Species;
+    protected override bool IsMatchDeferred(PKM pk) => false;
     protected override bool IsMatchPartial(PKM pk) => false; // no version compatibility checks yet.
 
     #region Lazy Ribbon Implementation
@@ -815,16 +813,13 @@ public sealed class WA8 : DataMysteryGift, ILangNick, INature, IGigantamax, IDyn
 
     public void SetRibbon(int index, bool value = true)
     {
-        if ((uint)index > (uint)MarkSlump)
-            throw new ArgumentOutOfRangeException(nameof(index));
-
+        ArgumentOutOfRangeException.ThrowIfGreaterThan((uint)index, (uint)RibbonIndexExtensions.MAX_G8A);
         if (value)
         {
             if (GetRibbon(index))
                 return;
             var openIndex = Array.IndexOf(Data, RibbonByteNone, RibbonBytesOffset, RibbonBytesCount);
-            if (openIndex == -1) // Full?
-                throw new ArgumentOutOfRangeException(nameof(index));
+            ArgumentOutOfRangeException.ThrowIfNegative(openIndex, nameof(openIndex)); // Full?
             SetRibbonAtIndex(openIndex, (byte)index);
         }
         else

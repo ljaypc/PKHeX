@@ -167,7 +167,9 @@ public static class MoveListSuggest
     {
         enc.GetEggRelearnMoves(parse, pk, moves);
         int generation = enc.Generation;
-        if (generation <= 5) // gen2 does not have splitbreed, <=5 do not have relearn moves and shouldn't even be here.
+
+        // Gen2 does not have split breed, Gen5 and below do not store relearn moves in the data structure.
+        if (generation <= 5)
             return;
 
         // Split-breed species like Budew & Roselia may be legal for one, and not the other.
@@ -186,7 +188,7 @@ public static class MoveListSuggest
         var generator = EncounterGenerator.GetGenerator(enc.Version);
 
         Span<EvoCriteria> chain = stackalloc EvoCriteria[EvolutionTree.MaxEvolutions];
-        var origin = new EvolutionOrigin(enc.Species, (byte)enc.Version, (byte)enc.Generation, 1, 100, true);
+        var origin = new EvolutionOrigin(enc.Species, (byte)enc.Version, (byte)enc.Generation, 1, 100, OriginOptions.EncounterTemplate);
         int count = EvolutionChain.GetOriginChain(chain, pk, origin);
         for (int i = 0; i < count; i++)
         {

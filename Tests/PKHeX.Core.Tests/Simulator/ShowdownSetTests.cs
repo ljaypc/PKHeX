@@ -7,20 +7,14 @@ namespace PKHeX.Core.Tests.Simulator;
 
 public class ShowdownSetTests
 {
-    static ShowdownSetTests()
-    {
-        if (!EncounterEvent.Initialized)
-            EncounterEvent.RefreshMGDB();
-    }
-
     [Fact]
     public void SimulatorGetParse()
     {
-        foreach (var setstr in Sets)
+        foreach (ReadOnlySpan<char> setstr in Sets)
         {
-            var set = new ShowdownSet(setstr).Text;
-            var lines = set.Split('\n').Select(z => z.Trim());
-            Assert.True(lines.All(setstr.Contains), setstr);
+            var set = new ShowdownSet(setstr).GetSetLines();
+            foreach (var line in set)
+                setstr.Contains(line, StringComparison.Ordinal).Should().BeTrue($"Line {line} should be in the set {setstr}");
         }
     }
 
@@ -42,7 +36,7 @@ public class ShowdownSetTests
         Assert.True(pk.Species != set.Species);
 
         var la = new LegalityAnalysis(pk);
-        Assert.True(la.Valid);
+        la.Valid.Should().BeTrue($"Encounter should have generated legally: {egg} {la.Report()}");
 
         var test = EncounterMovesetGenerator.GenerateEncounters(pk7, info, pk7.Moves).ToList();
         for (var i = 0; i < test.Count; i++)
@@ -50,19 +44,18 @@ public class ShowdownSetTests
             var t = test[i];
             var convert = t.ConvertToPKM(info);
             var la2 = new LegalityAnalysis(convert);
-            la2.Valid.Should().BeTrue($"Encounter {i} should have generated legally: {t}");
+            la2.Valid.Should().BeTrue($"Encounter {i} should have generated legally: {t} {la2.Report()}");
         }
     }
 
-    [Fact]
-    public void SimGetVivillonPostcardSV()
+    [Theory]
+    [InlineData(1)]
+    [InlineData(Vivillon3DS.FancyFormID)]
+    public void SimGetVivillonPostcardSV(byte form)
     {
-        var pk9 = new PK9 { Species = (int)Species.Vivillon, Form = 1 };
-        var encounters = EncounterMovesetGenerator.GenerateEncounters(pk9, Array.Empty<ushort>(), GameVersion.SL);
-        encounters.OfType<EncounterSlot9>().Should().NotBeEmpty();
-
-        pk9 = new PK9 { Species = (int)Species.Vivillon, Form = Vivillon3DS.FancyFormID };
-        encounters = EncounterMovesetGenerator.GenerateEncounters(pk9, Array.Empty<ushort>(), GameVersion.SL);
+        var pk9 = new PK9 { Species = (int)Species.Vivillon, Form = form };
+        ushort[] moves = [];
+        var encounters = EncounterMovesetGenerator.GenerateEncounters(pk9, moves, GameVersion.SL);
         encounters.OfType<EncounterSlot9>().Should().NotBeEmpty();
     }
 
@@ -163,8 +156,13 @@ public class ShowdownSetTests
 
         sets = ShowdownParsing.GetShowdownSets(string.Empty);
         Assert.True(!sets.Any());
+    }
 
-        sets = ShowdownParsing.GetShowdownSets(new [] {"", "   ", " "});
+    [Fact]
+    public void SimulatorParseEmpty()
+    {
+        string[] lines = ["", "   ", " "];
+        var sets = ShowdownParsing.GetShowdownSets(lines);
         Assert.True(!sets.Any());
     }
 
@@ -182,13 +180,13 @@ public class ShowdownSetTests
     public void SimulatorParseEncounter(string text)
     {
         var set = new ShowdownSet(text);
-        var pk7 = new PK7 { Species = set.Species, Form = set.Form, Moves = set.Moves, CurrentLevel = set.Level };
+        var pk7 = new PK3 { Species = set.Species, Form = set.Form, Moves = set.Moves, CurrentLevel = set.Level };
         var encs = EncounterMovesetGenerator.GenerateEncounters(pk7, set.Moves);
         var tr3 = encs.First(z => z is EncounterTrade3);
         var pk3 = tr3.ConvertToPKM(new SAV3FRLG());
 
         var la = new LegalityAnalysis(pk3);
-        la.Valid.Should().BeTrue();
+        la.Valid.Should().BeTrue(la.Report());
     }
 
     [Theory]
@@ -250,7 +248,6 @@ Adamant Nature
 IVs: 0 Atk
 EVs: 252 HP / 252 SpA / 4 SpD
 Ability: Ice Body
-Level: 100
 Shiny: Yes
 Modest Nature
 - Blizzard
@@ -310,7 +307,7 @@ Adamant Nature
 - Iron Tail";
 
     private static readonly string[] Sets =
-    {
+    [
         SetGlaceonUSUMTutor,
         SetNicknamedTypeNull,
         SetMunchSnorLax,
@@ -323,5 +320,5 @@ Timid Nature
 - Spikes
 - Water Shuriken
 - Dark Pulse",
-    };
+    ];
 }

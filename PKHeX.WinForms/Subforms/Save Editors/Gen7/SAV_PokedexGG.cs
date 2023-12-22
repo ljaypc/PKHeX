@@ -12,13 +12,13 @@ public partial class SAV_PokedexGG : Form
     private readonly SaveFile Origin;
     private readonly SAV7b SAV;
 
-    public SAV_PokedexGG(SaveFile sav)
+    public SAV_PokedexGG(SAV7b sav)
     {
         InitializeComponent();
         WinFormsUtil.TranslateInterface(this, Main.CurrentLanguage);
         SAV = (SAV7b)(Origin = sav).Clone();
-        CP = new[] { CHK_P1, CHK_P2, CHK_P3, CHK_P4, CHK_P5, CHK_P6, CHK_P7, CHK_P8, CHK_P9 };
-        CL = new[] { CHK_L1, CHK_L2, CHK_L3, CHK_L4, CHK_L5, CHK_L6, CHK_L7, CHK_L8, CHK_L9 };
+        CP = [CHK_P1, CHK_P2, CHK_P3, CHK_P4, CHK_P5, CHK_P6, CHK_P7, CHK_P8, CHK_P9];
+        CL = [CHK_L1, CHK_L2, CHK_L3, CHK_L4, CHK_L5, CHK_L6, CHK_L7, CHK_L8, CHK_L9];
 
         editing = true;
         // Clear Listbox and ComboBox
@@ -36,9 +36,10 @@ public partial class SAV_PokedexGG : Form
         foreach (var n in names)
             LB_Species.Items.Add(n);
 
-        RecordUsed = new[] { CHK_RMinHeight, CHK_RMaxHeight, CHK_RMinWeight, CHK_RMaxWeight };
-        RecordHeight = new[] { NUD_RHeightMin, NUD_RHeightMax, NUD_RWeightMinHeight, NUD_RWeightMaxHeight };
-        RecordWeight = new[] { NUD_RHeightMinWeight, NUD_RHeightMaxWeight, NUD_RWeightMin, NUD_RWeightMax };
+        RecordUsed = [CHK_RMinHeight, CHK_RMaxHeight, CHK_RMinWeight, CHK_RMaxWeight];
+        RecordHeight = [NUD_RHeightMin, NUD_RHeightMax, NUD_RWeightMinHeight, NUD_RWeightMaxHeight];
+        RecordWeight = [NUD_RHeightMinWeight, NUD_RHeightMaxWeight, NUD_RWeightMin, NUD_RWeightMax];
+        RecordFlag = [CHK_MinH, CHK_MaxH, CHK_MinW, CHK_MaxW];
 
         editing = false;
         LB_Species.SelectedIndex = 0;
@@ -51,7 +52,7 @@ public partial class SAV_PokedexGG : Form
     private ushort currentSpecies = ushort.MaxValue;
     private readonly CheckBox[] CP, CL;
 
-    private readonly CheckBox[] RecordUsed;
+    private readonly CheckBox[] RecordUsed, RecordFlag;
     private readonly NumericUpDown[] RecordHeight, RecordWeight;
 
     private void B_Counts_Click(object sender, EventArgs e)
@@ -85,7 +86,8 @@ public partial class SAV_PokedexGG : Form
         editing = true;
         currentSpecies = (ushort)(LB_Species.SelectedIndex + 1);
         CB_Species.SelectedValue = (int)currentSpecies;
-        if (!allModifying) FillLBForms();
+        if (!allModifying)
+            FillLBForms();
         GetEntry();
         editing = false;
     }
@@ -101,27 +103,8 @@ public partial class SAV_PokedexGG : Form
         editing = true;
         var fspecies = (ushort)(LB_Species.SelectedIndex + 1);
         var bspecies = Dex.GetBaseSpecies(fspecies);
-        int form = LB_Forms.SelectedIndex;
-        if (form > 0)
-        {
-            var fc = SAV.Personal[bspecies].FormCount;
-            if (fc > 1) // actually has forms
-            {
-                int f = Dex.DexFormIndexFetcher(bspecies, fc, SAV.MaxSpeciesID - 1);
-                if (f >= 0) // bit index valid
-                    currentSpecies = (ushort)(f + form + 1);
-                else
-                    currentSpecies = bspecies;
-            }
-            else
-            {
-                currentSpecies = bspecies;
-            }
-        }
-        else
-        {
-            currentSpecies = bspecies;
-        }
+        var form = (byte)LB_Forms.SelectedIndex;
+        currentSpecies = Dex.GetSpecies(bspecies, form);
 
         CB_Species.SelectedValue = (int)currentSpecies;
         LB_Species.SelectedIndex = currentSpecies - 1;
@@ -151,7 +134,7 @@ public partial class SAV_PokedexGG : Form
             return false;
         }
 
-        // sanity check forms -- SM does not have totem form dex bits
+        // sanity check forms -- GG does not have totem form dex bits
         int count = SAV.Personal[bspecies].FormCount;
         if (count < ds.Count)
             ds.RemoveAt(count); // remove last
@@ -278,16 +261,17 @@ public partial class SAV_PokedexGG : Form
         if (!hasRecord)
             return;
 
-        void set(DexSizeType type, NumericUpDown nudH, NumericUpDown nudW, CheckBox ck)
+        void set(DexSizeType type, NumericUpDown nudH, NumericUpDown nudW, CheckBox used, CheckBox flag)
         {
-            nudH.Enabled = nudW.Enabled = ck.Checked = Dex.GetSizeData(type, index, out byte h, out byte w);
+            nudH.Enabled = nudW.Enabled = used.Checked = Dex.GetSizeData(type, index, out byte h, out byte w, out bool isFlagged);
+            flag.Checked = isFlagged;
             nudH.Value = h;
             nudW.Value = w;
         }
-        set(DexSizeType.MinHeight, NUD_RHeightMin, NUD_RHeightMinWeight, CHK_RMinHeight);
-        set(DexSizeType.MaxHeight, NUD_RHeightMax, NUD_RHeightMaxWeight, CHK_RMaxHeight);
-        set(DexSizeType.MinWeight, NUD_RWeightMinHeight, NUD_RWeightMin, CHK_RMinWeight);
-        set(DexSizeType.MaxWeight, NUD_RWeightMaxHeight, NUD_RWeightMax, CHK_RMaxWeight);
+        set(DexSizeType.MinHeight, NUD_RHeightMin, NUD_RHeightMinWeight, CHK_RMinHeight, CHK_MinH);
+        set(DexSizeType.MaxHeight, NUD_RHeightMax, NUD_RHeightMaxWeight, CHK_RMaxHeight, CHK_MaxH);
+        set(DexSizeType.MinWeight, NUD_RWeightMinHeight, NUD_RWeightMin, CHK_RMinWeight, CHK_MinW);
+        set(DexSizeType.MaxWeight, NUD_RWeightMaxHeight, NUD_RWeightMax, CHK_RMaxWeight, CHK_MaxW);
     }
 
     private void SetRecord(ushort species, byte form)
@@ -296,12 +280,13 @@ public partial class SAV_PokedexGG : Form
         if (!hasRecord)
             return;
 
-        static byte get(NumericUpDown nud, CheckBox ck) => !ck.Checked ? Zukan7b.DefaultEntryValue : (byte)nud.Value;
+        static byte getW(NumericUpDown nud, CheckBox ck) => !ck.Checked ? Zukan7b.DefaultEntryValueW : (byte)nud.Value;
+        static byte getH(NumericUpDown nud, CheckBox ck) => !ck.Checked ? Zukan7b.DefaultEntryValueH : (byte)nud.Value;
 
-        Dex.SetSizeData(DexSizeType.MinHeight, index, get(NUD_RHeightMin, CHK_RMinHeight), get(NUD_RHeightMinWeight, CHK_RMinHeight));
-        Dex.SetSizeData(DexSizeType.MaxHeight, index, get(NUD_RHeightMax, CHK_RMaxHeight), get(NUD_RHeightMaxWeight, CHK_RMaxHeight));
-        Dex.SetSizeData(DexSizeType.MinWeight, index, get(NUD_RWeightMinHeight, CHK_RMinWeight), get(NUD_RWeightMin, CHK_RMinWeight));
-        Dex.SetSizeData(DexSizeType.MaxWeight, index, get(NUD_RWeightMaxHeight, CHK_RMaxWeight), get(NUD_RWeightMax, CHK_RMaxWeight));
+        Dex.SetSizeData(DexSizeType.MinHeight, index, getH(NUD_RHeightMin, CHK_RMinHeight), getW(NUD_RHeightMinWeight, CHK_RMinHeight), CHK_MinH.Checked);
+        Dex.SetSizeData(DexSizeType.MaxHeight, index, getH(NUD_RHeightMax, CHK_RMaxHeight), getW(NUD_RHeightMaxWeight, CHK_RMaxHeight), CHK_MaxH.Checked);
+        Dex.SetSizeData(DexSizeType.MinWeight, index, getH(NUD_RWeightMinHeight, CHK_RMinWeight), getW(NUD_RWeightMin, CHK_RMinWeight), CHK_MinW.Checked);
+        Dex.SetSizeData(DexSizeType.MaxWeight, index, getH(NUD_RWeightMaxHeight, CHK_RMaxWeight), getW(NUD_RWeightMax, CHK_RMaxWeight), CHK_MaxW.Checked);
     }
 
     private void CHK_RUsed_CheckedChanged(object sender, EventArgs e)
@@ -310,10 +295,15 @@ public partial class SAV_PokedexGG : Form
         int index = Array.IndexOf(RecordUsed, ck);
         var h = RecordHeight[index];
         var w = RecordWeight[index];
+        var flag = RecordFlag[index];
 
         h.Enabled = w.Enabled = ck.Checked;
-        if (!editing && !ck.Checked)
-            h.Value = w.Value = Zukan7b.DefaultEntryValue;
+        if (editing || ck.Checked)
+            return;
+
+        flag.Checked = false;
+        h.Value = Zukan7b.DefaultEntryValueH;
+        w.Value = Zukan7b.DefaultEntryValueW;
     }
 
     private void B_Cancel_Click(object sender, EventArgs e)

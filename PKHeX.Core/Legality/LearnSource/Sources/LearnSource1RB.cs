@@ -45,7 +45,7 @@ public sealed class LearnSource1RB : ILearnSource<PersonalInfo1>
         {
             var learn = Learnsets[evo.Species];
             var level = learn.GetLevelLearnMove(move);
-            if (level != -1 && evo.LevelMin <= level && level <= evo.LevelMax)
+            if (level != -1 && evo.InsideLevelRange(level))
                 return new(LevelUp, Game, (byte)level);
         }
 
@@ -55,7 +55,7 @@ public sealed class LearnSource1RB : ILearnSource<PersonalInfo1>
     private static bool GetIsTutor(ushort species, byte move)
     {
         // No special tutors besides Stadium, which is GB-era only.
-        if (!ParseSettings.AllowGBCartEra)
+        if (!ParseSettings.AllowGBStadium2)
             return false;
 
         // Surf Pikachu via Stadium

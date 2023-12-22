@@ -13,7 +13,7 @@ public partial class SAV_Trainer7GG : Form
     private readonly SAV7b SAV;
     private readonly GoParkStorage Park;
 
-    public SAV_Trainer7GG(SaveFile sav)
+    public SAV_Trainer7GG(SAV7b sav)
     {
         InitializeComponent();
         WinFormsUtil.TranslateInterface(this, Main.CurrentLanguage);
@@ -31,6 +31,8 @@ public partial class SAV_Trainer7GG : Form
         GetComboBoxes();
         LoadTrainerInfo();
     }
+
+    private bool MapUpdated;
 
     // Drag & Drop Events
     private void Main_DragEnter(object? sender, DragEventArgs? e)
@@ -73,6 +75,20 @@ public partial class SAV_Trainer7GG : Form
         CB_Gender.SelectedIndex = SAV.Gender;
         trainerID1.LoadIDValues(SAV, SAV.Generation);
 
+        NUD_M.Value = SAV.Coordinates.M;
+        // Sanity Check Map Coordinates
+        try
+        {
+            NUD_X.Value = (decimal)(double)SAV.Coordinates.X;
+            NUD_Z.Value = (decimal)(double)SAV.Coordinates.Z;
+            NUD_Y.Value = (decimal)(double)SAV.Coordinates.Y;
+            NUD_SX.Value = (decimal)(double)SAV.Coordinates.SX;
+            NUD_SZ.Value = (decimal)(double)SAV.Coordinates.SZ;
+            NUD_SY.Value = (decimal)(double)SAV.Coordinates.SY;
+            NUD_R.Value = (decimal)(Math.Atan2(SAV.Coordinates.RZ, SAV.Coordinates.RW) * 360.0 / Math.PI);
+        }
+        catch { GB_Map.Enabled = false; }
+
         // Load Play Time
         MT_Hours.Text = SAV.PlayedHours.ToString();
         MT_Minutes.Text = SAV.PlayedMinutes.ToString();
@@ -94,6 +110,23 @@ public partial class SAV_Trainer7GG : Form
 
         SAV.OT = TB_OTName.Text;
         SAV.Blocks.Misc.Rival = TB_RivalName.Text;
+
+        // Copy Position
+        if (GB_Map.Enabled && MapUpdated)
+        {
+            SAV.Coordinates.M = (ulong)NUD_M.Value;
+            SAV.Coordinates.X = (float)NUD_X.Value;
+            SAV.Coordinates.Z = (float)NUD_Z.Value;
+            SAV.Coordinates.Y = (float)NUD_Y.Value;
+            SAV.Coordinates.SX = (float)NUD_SX.Value;
+            SAV.Coordinates.SZ = (float)NUD_SZ.Value;
+            SAV.Coordinates.SY = (float)NUD_SY.Value;
+            var angle = (double)NUD_R.Value * Math.PI / 360.0;
+            SAV.Coordinates.RX = 0;
+            SAV.Coordinates.RZ = (float)Math.Sin(angle);
+            SAV.Coordinates.RY = 0;
+            SAV.Coordinates.RW = (float)Math.Cos(angle);
+        }
 
         // Save PlayTime
         SAV.PlayedHours = ushort.Parse(MT_Hours.Text);
@@ -133,6 +166,11 @@ public partial class SAV_Trainer7GG : Form
         if (Util.ToInt32(box.Text) > 255) box.Text = "255";
     }
 
+    private void ChangeMapValue(object sender, EventArgs e)
+    {
+        MapUpdated = true;
+    }
+
     private void B_ExportGoSummary_Click(object sender, EventArgs e)
     {
         var summary = Park.DumpAll(GameInfo.Strings.Species).ToArray();
@@ -165,12 +203,10 @@ public partial class SAV_Trainer7GG : Form
 
     private void B_Import_Click(object sender, EventArgs e)
     {
-        using var sfd = new OpenFileDialog
-        {
-            Filter = GoFilter,
-            FilterIndex = 0,
-            RestoreDirectory = true,
-        };
+        using var sfd = new OpenFileDialog();
+        sfd.Filter = GoFilter;
+        sfd.FilterIndex = 0;
+        sfd.RestoreDirectory = true;
 
         // Export
         if (sfd.ShowDialog() != DialogResult.OK)
@@ -211,13 +247,11 @@ public partial class SAV_Trainer7GG : Form
         index = Math.Clamp(index, 0, max);
         var data = Park[index];
 
-        using var sfd = new SaveFileDialog
-        {
-            FileName = data.FileName,
-            Filter = GoFilter,
-            FilterIndex = 0,
-            RestoreDirectory = true,
-        };
+        using var sfd = new SaveFileDialog();
+        sfd.FileName = data.FileName;
+        sfd.Filter = GoFilter;
+        sfd.FilterIndex = 0;
+        sfd.RestoreDirectory = true;
 
         if (sfd.ShowDialog() != DialogResult.OK)
             return;

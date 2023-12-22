@@ -188,7 +188,7 @@ public sealed class PKH : PKM, IHandlerLanguage, IFormArgument, IHomeTrack, IBat
 
     public override uint PSV => ((PID >> 16) ^ (PID & 0xFFFF)) >> 4;
     public override uint TSV => (uint)(TID16 ^ SID16) >> 4;
-    public override int Characteristic => EntityCharacteristic.GetCharacteristic(EncryptionConstant, stackalloc int[] {IV_HP, IV_ATK, IV_DEF, IV_SPE, IV_SPA, IV_SPD});
+    public override int Characteristic => EntityCharacteristic.GetCharacteristic(EncryptionConstant, [IV_HP, IV_ATK, IV_DEF, IV_SPE, IV_SPA, IV_SPD]);
 
     #endregion
 
@@ -224,7 +224,7 @@ public sealed class PKH : PKM, IHandlerLanguage, IFormArgument, IHomeTrack, IBat
     #region Maximums
 
     public override int MaxIV => 31;
-    public override int MaxEV => 252;
+    public override int MaxEV => EffortValues.Max252;
     public override int MaxStringLengthOT => 12;
     public override int MaxStringLengthNickname => 12;
     public override ushort MaxMoveID => Legal.MaxMoveID_8a;
@@ -236,8 +236,8 @@ public sealed class PKH : PKM, IHandlerLanguage, IFormArgument, IHomeTrack, IBat
 
     #endregion
 
-    public override int SIZE_PARTY => HomeCrypto.SIZE_2STORED;
-    public override int SIZE_STORED => HomeCrypto.SIZE_2STORED;
+    public override int SIZE_PARTY => HomeCrypto.SIZE_3STORED;
+    public override int SIZE_STORED => HomeCrypto.SIZE_3STORED;
     public override bool Valid { get => true; set { } }
     public override PersonalInfo PersonalInfo => LatestGameData.GetPersonalInfo(Species, Form);
     public override void RefreshChecksum() => Checksum = 0;
